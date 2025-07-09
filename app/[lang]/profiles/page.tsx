@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import { getDictionary } from "../dictionaries" // Import dictionary
+// Removed: import { getDictionary } from "../dictionaries"
 
 interface Profile {
   id: string
@@ -37,13 +37,60 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
 
   useEffect(() => {
     const loadDictionary = async () => {
-      const loadedDict = await getDictionary(lang)
-      setDict(loadedDict)
+      try {
+        const response = await fetch(`/api/dictionaries/profiles/${lang}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch profiles dictionary")
+        }
+        const data = await response.json()
+        setDict(data)
+      } catch (err) {
+        console.error(err)
+        // Fallback to a minimal English dictionary if fetch fails
+        setDict({
+          profilesPage: {
+            title: "Profiles",
+            loadingProfiles: "Loading profiles...",
+            failedToFetchProfiles: "Failed to fetch profiles.",
+            actionNotAllowed: "Action Not Allowed",
+            newProfilesSignup: "New profiles are created via the signup process.",
+            profileSaved: "Profile saved successfully.",
+            profileDeleted: "Profile deleted successfully.",
+            failedToSaveProfile: "Failed to save profile.",
+            failedToDeleteProfile: "Failed to delete profile.",
+          },
+          profileForm: {
+            editTitle: "Edit Profile",
+            addTitle: "Add Profile",
+            editDescription: "Make changes to the profile here.",
+            addDescription: "Add a new profile to your list.",
+          },
+          common: {
+            name: "Name",
+            email: "Email",
+            actions: "Actions",
+            edit: "Edit",
+            delete: "Delete",
+            saveChanges: "Save changes",
+            cancel: "Cancel",
+            loading: "Loading...",
+            error: "Error",
+            success: "Success",
+            noDataFound: "No {itemType} found.",
+            confirmDeletion: "Confirm Deletion",
+            confirmDeletionDescription:
+              'Are you sure you want to delete the {itemType} "{itemName}"? This action cannot be undone.',
+            deleteButton: "Delete",
+            add: "Add {itemType}",
+          },
+        })
+      }
     }
     loadDictionary()
   }, [lang])
 
   const fetchProfiles = useCallback(async () => {
+    if (!dict) return // Wait for dictionary to load
     setLoading(true)
     setError(null)
     try {
@@ -68,7 +115,6 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
 
   useEffect(() => {
     if (dict) {
-      // Only fetch if dictionary is loaded
       fetchProfiles()
     }
   }, [fetchProfiles, dict])

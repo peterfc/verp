@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { getDictionary } from "../dictionaries" // Import dictionary
+// Removed: import { getDictionary } from "../dictionaries"
 
 interface Profile {
   id: string
@@ -33,7 +33,7 @@ interface Customer {
   profiles: Profile[]
 }
 
-export default async function CustomersPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
+export default function CustomersPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>(undefined)
@@ -46,13 +46,71 @@ export default async function CustomersPage({ params: { lang } }: { params: { la
 
   useEffect(() => {
     const loadDictionary = async () => {
-      const loadedDict = await getDictionary(lang)
-      setDict(loadedDict)
+      try {
+        const response = await fetch(`/api/dictionaries/customers/${lang}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch customers dictionary")
+        }
+        const data = await response.json()
+        setDict(data)
+      } catch (err) {
+        console.error(err)
+        // Fallback to a minimal English dictionary if fetch fails
+        setDict({
+          customersPage: {
+            title: "Customers",
+            loadingCustomers: "Loading customers...",
+            failedToFetchCustomers: "Failed to fetch customers.",
+            customerSaved: "Customer saved successfully.",
+            customerDeleted: "Customer deleted successfully.",
+            failedToSaveCustomer: "Failed to save customer.",
+            failedToDeleteCustomer: "Failed to delete customer.",
+            contact: "Contact",
+            industry: "Industry",
+            associatedProfiles: "Associated Profiles",
+          },
+          customerForm: {
+            editTitle: "Edit Customer",
+            addTitle: "Add Customer",
+            editDescription: "Make changes to the customer here.",
+            addDescription: "Add a new customer to your list.",
+            contactLabel: "Contact",
+            industryLabel: "Industry",
+            profilesLabel: "Profiles",
+            errorFetchingProfiles: "Error fetching profiles",
+            failedToLoadProfiles: "Failed to load profiles for selection.",
+          },
+          multiSelectProfiles: {
+            selectProfilesPlaceholder: "Select profiles...",
+            searchProfilesPlaceholder: "Search profiles...",
+            noProfilesFound: "No profiles found.",
+          },
+          common: {
+            name: "Name",
+            email: "Email",
+            actions: "Actions",
+            edit: "Edit",
+            delete: "Delete",
+            saveChanges: "Save changes",
+            cancel: "Cancel",
+            loading: "Loading...",
+            error: "Error",
+            success: "Success",
+            noDataFound: "No {itemType} found.",
+            confirmDeletion: "Confirm Deletion",
+            confirmDeletionDescription:
+              'Are you sure you want to delete the {itemType} "{itemName}"? This action cannot be undone.',
+            deleteButton: "Delete",
+            add: "Add {itemType}",
+          },
+        })
+      }
     }
     loadDictionary()
   }, [lang])
 
   const fetchCustomers = useCallback(async () => {
+    if (!dict) return // Wait for dictionary to load
     setLoading(true)
     setError(null)
     try {
@@ -77,7 +135,6 @@ export default async function CustomersPage({ params: { lang } }: { params: { la
 
   useEffect(() => {
     if (dict) {
-      // Only fetch if dictionary is loaded
       fetchCustomers()
     }
   }, [fetchCustomers, dict])
