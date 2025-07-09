@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter, usePathname, useSearchParams } from "next/navigation" // Import usePathname
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,36 +11,77 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 
-// Client-side dictionary for the login page
-const loginDictionaries = {
-  en: () => import("../[lang]/dictionaries/en.json").then((module) => module.default),
-  es: () => import("../[lang]/dictionaries/es.json").then((module) => module.default),
-}
-
-const getLoginDictionary = async (locale: "en" | "es") => loginDictionaries[locale]?.() ?? loginDictionaries.en()
-
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const pathname = usePathname() // Get current pathname
-  const searchParams = useSearchParams() // Call useSearchParams at the top level
-  const supabase = createBrowserClient()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const supabase = createBrowserClient() // This can now be null
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null) // State to hold dictionary
+  const [isSupabaseReady, setIsSupabaseReady] = useState(false)
 
   useEffect(() => {
     const loadDict = async () => {
-      // Extract locale from pathname, default to 'en' if not present
       const currentLocale = (pathname.split("/")[1] || "en") as "en" | "es"
-      setDict(await getLoginDictionary(currentLocale))
+      try {
+        const response = await fetch(`/api/dictionaries/login/${currentLocale}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch login dictionary")
+        }
+        const data = await response.json()
+        setDict(data)
+      } catch (error) {
+        console.error(error)
+        setDict({
+          loginPage: {
+            title: "Login or Sign Up",
+            description: "Enter your email and password to access the CRM app.",
+            email: "Email",
+            password: "Password",
+            login: "Login",
+            signUp: "Sign Up",
+            loginFailed: "Login Failed",
+            loginSuccessful: "Login Successful",
+            redirecting: "Redirecting to dashboard...",
+            signUpFailed: "Sign Up Failed",
+            signUpSuccessful: "Sign Up Successful",
+            confirmEmail: "Please check your email to confirm your account.",
+          },
+          common: {
+            loading: "Loading...",
+          },
+        })
+      }
     }
     loadDict()
-  }, [pathname])
+
+    // Check if supabase client is ready
+    if (supabase) {
+      setIsSupabaseReady(true)
+    } else {
+      setIsSupabaseReady(false)
+      toast({
+        title: "Configuration Error",
+        description: "Supabase environment variables are not set. Login/Signup functionality is disabled.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    }
+  }, [pathname, supabase, toast])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) {
+      toast({
+        title: "Error",
+        description: "Supabase client not initialized. Cannot log in.",
+        variant: "destructive",
+      })
+      return
+    }
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -58,15 +99,12 @@ export default function LoginPage() {
         title: dict?.loginPage.loginSuccessful || "Login Successful",
         description: dict?.loginPage.redirecting || "Redirecting to dashboard...",
       })
-      // Determine the target locale for redirection
       const redirectedFrom = searchParams.get("redirectedFrom")
 
-      let targetLocale = "en" // Default locale
+      let targetLocale = "en"
       if (redirectedFrom) {
-        // Extract locale from the redirectedFrom path, e.g., "/en/profiles" -> "en"
         const parts = redirectedFrom.split("/")
         if (parts.length > 1 && (parts[1] === "en" || parts[1] === "es")) {
-          // Ensure it's a valid locale
           targetLocale = parts[1]
         }
       }
@@ -77,6 +115,14 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) {
+      toast({
+        title: "Error",
+        description: "Supabase client not initialized. Cannot sign up.",
+        variant: "destructive",
+      })
+      return
+    }
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -105,7 +151,7 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  if (!dict) return null // Don't render until dictionary is loaded
+  if (!dict) return null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
@@ -125,6 +171,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={!isSupabaseReady || loading}
               />
             </div>
             <div className="grid gap-2">
@@ -135,9 +182,10 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={!isSupabaseReady || loading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={!isSupabaseReady || loading}>
               {loading ? dict.common.loading : dict.loginPage.login}
             </Button>
             <Button
@@ -145,7 +193,7 @@ export default function LoginPage() {
               variant="outline"
               className="w-full bg-transparent"
               onClick={handleSignUp}
-              disabled={loading}
+              disabled={!isSupabaseReady || loading}
             >
               {loading ? dict.common.loading : dict.loginPage.signUp}
             </Button>

@@ -1,9 +1,10 @@
 import { createBrowserClient as createClient } from "@supabase/ssr"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
-// Create a single Supabase client for client-side operations (singleton pattern)
-let supabaseClient: ReturnType<typeof createClient> | null = null
+// Keep a singleton.
+let supabaseClient: SupabaseClient | null = null
 
-export const createBrowserClient = () => {
+export const createBrowserClient = (): SupabaseClient | null => {
   if (supabaseClient) {
     return supabaseClient
   }
@@ -11,20 +12,12 @@ export const createBrowserClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Add these console logs for debugging
-  console.log("DEBUG: NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "Set" : "Not Set")
-  console.log("DEBUG: NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "Set" : "Not Set")
-  console.log("DEBUG: Full URL value (first 10 chars):", supabaseUrl ? supabaseUrl.substring(0, 10) : "N/A")
-  console.log(
-    "DEBUG: Full Anon Key value (first 10 chars):",
-    supabaseAnonKey ? supabaseAnonKey.substring(0, 10) : "N/A",
-  )
-
-  if (!supabaseUrl) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable in browser client.")
-  }
-  if (!supabaseAnonKey) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable in browser client.")
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn(
+      "Supabase environment variables (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY) are missing. " +
+        "Supabase client will not be initialized. Please ensure these are set in your Vercel project settings.",
+    )
+    return null // Return null if environment variables are missing
   }
 
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
