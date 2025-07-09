@@ -1,0 +1,101 @@
+{
+  "common": {
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "saveChanges": "Guardar cambios",
+    "cancel": "Cancelar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "noDataFound": "No se encontraron {itemType}.",
+    "confirmDeletion": "Confirmar eliminación",
+    "confirmDeletionDescription": "¿Estás seguro de que quieres eliminar {itemType} \"{itemName}\"? Esta acción no se puede deshacer.",
+    "deleteButton": "Eliminar",
+    "add": "Añadir {itemType}"
+  },
+  "layout": {
+    "dashboardTitle": "Panel de control",
+    "toggleSidebar": "Alternar barra lateral",
+    "metadataTitle": "Gestión de Clientes y Usuarios",
+    "metadataDescription": "Una aplicación web moderna para gestionar clientes y usuarios."
+  },
+  "sidebar": {
+    "appName": "Aplicación CRM",
+    "navigation": "Navegación",
+    "dashboard": "Panel de control",
+    "profiles": "Perfiles",
+    "customers": "Clientes",
+    "logout": "Cerrar sesión",
+    "logoutFailed": "Error al cerrar sesión",
+    "loggedOut": "Sesión cerrada",
+    "loggedOutDescription": "Has cerrado sesión correctamente."
+  },
+  "homePage": {
+    "welcomeTitle": "Bienvenido a la aplicación CRM",
+    "welcomeDescription": "Navega para gestionar tus perfiles y clientes.",
+    "manageProfiles": "Gestionar perfiles",
+    "manageCustomers": "Gestionar clientes"
+  },
+  "profilesPage": {
+    "title": "Perfiles",
+    "loadingProfiles": "Cargando perfiles...",
+    "failedToFetchProfiles": "Error al cargar perfiles.",
+    "actionNotAllowed": "Acción no permitida",
+    "newProfilesSignup": "Los nuevos perfiles se crean a través del proceso de registro.",
+    "profileSaved": "Perfil guardado correctamente.",
+    "profileDeleted": "Perfil eliminado correctamente.",
+    "failedToSaveProfile": "Error al guardar perfil.",
+    "failedToDeleteProfile": "Error al eliminar perfil."
+  },
+  "profileForm": {
+    "editTitle": "Editar perfil",
+    "addTitle": "Añadir perfil",
+    "editDescription": "Realiza cambios en el perfil aquí.",
+    "addDescription": "Añade un nuevo perfil a tu lista."
+  },
+  "customersPage": {
+    "title": "Clientes",
+    "loadingCustomers": "Cargando clientes...",
+    "failedToFetchCustomers": "Error al cargar clientes.",
+    "customerSaved": "Cliente guardado correctamente.",
+    "customerDeleted": "Cliente eliminado correctamente.",
+    "failedToSaveCustomer": "Error al guardar cliente.",
+    "failedToDeleteCustomer": "Error al eliminar cliente.",
+    "contact": "Contacto",
+    "industry": "Industria",
+    "associatedProfiles": "Perfiles asociados"
+  },
+  "customerForm": {
+    "editTitle": "Editar cliente",
+    "addTitle": "Añadir cliente",
+    "editDescription": "Realiza cambios en el cliente aquí.",
+    "addDescription": "Añade un nuevo cliente a tu lista.",
+    "contactLabel": "Contacto",
+    "industryLabel": "Industria",
+    "profilesLabel": "Perfiles",
+    "errorFetchingProfiles": "Error al cargar perfiles",
+    "failedToLoadProfiles": "No se pudieron cargar los perfiles para la selección."
+  },
+  "multiSelectProfiles": {
+    "selectProfilesPlaceholder": "Seleccionar perfiles...",
+    "searchProfilesPlaceholder": "Buscar perfiles...",
+    "noProfilesFound": "No se encontraron perfiles."
+  },
+  "loginPage": {
+    "title": "Iniciar sesión o Registrarse",
+    "description": "Introduce tu correo electrónico y contraseña para acceder a la aplicación CRM.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "login": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "loginFailed": "Error al iniciar sesión",
+    "loginSuccessful": "Inicio de sesión exitoso",
+    "redirecting": "Redirigiendo al panel de control...",
+    "signUpFailed": "Error al registrarse",
+    "signUpSuccessful": "Registro exitoso",
+    "confirmEmail": "Por favor, revisa tu correo electrónico para confirmar tu cuenta (si la confirmación por correo electrónico está habilitada)."
+  }
+}

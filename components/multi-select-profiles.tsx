@@ -19,9 +19,20 @@ interface MultiSelectProfilesProps {
   profiles: Profile[]
   selectedProfileIds: string[]
   onSelectionChange: (selectedIds: string[]) => void
+  dict: {
+    // Add dictionary prop
+    selectProfilesPlaceholder: string
+    searchProfilesPlaceholder: string
+    noProfilesFound: string
+  }
 }
 
-export function MultiSelectProfiles({ profiles, selectedProfileIds, onSelectionChange }: MultiSelectProfilesProps) {
+export function MultiSelectProfiles({
+  profiles,
+  selectedProfileIds,
+  onSelectionChange,
+  dict,
+}: MultiSelectProfilesProps) {
   const [open, setOpen] = React.useState(false)
 
   const handleSelect = (profileId: string) => {
@@ -55,16 +66,16 @@ export function MultiSelectProfiles({ profiles, selectedProfileIds, onSelectionC
               ))}
             </div>
           ) : (
-            "Select profiles..."
+            dict.selectProfilesPlaceholder
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput placeholder="Search profiles..." />
+          <CommandInput placeholder={dict.searchProfilesPlaceholder} />
           <CommandList>
-            <CommandEmpty>No profiles found.</CommandEmpty>
+            <CommandEmpty>{dict.noProfilesFound}</CommandEmpty>
             <CommandGroup>
               {profiles.map((profile) => (
                 <CommandItem key={profile.id} value={profile.name} onSelect={() => handleSelect(profile.id)}>

@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { Users, BriefcaseBusiness, Home, LogOut } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation" // Import usePathname
+import { useRouter, usePathname } from "next/navigation" // Keep usePathname for current path logic
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -19,27 +19,30 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function AppSidebar() {
+export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
   const router = useRouter()
+  const pathname = usePathname() // Use usePathname for consistent path on server and client
   const supabase = createBrowserClient()
   const { toast } = useToast()
-  const pathname = usePathname() // Use usePathname for consistent path on server and client
   const { isMobile, setOpenMobile } = useSidebar()
+
+  // Extract current locale from pathname
+  const currentLocale = pathname.split("/")[1] || "en"
 
   const navItems = [
     {
-      title: "Dashboard",
-      url: "/",
+      title: sidebarDict.dashboard,
+      url: `/${currentLocale}/`,
       icon: Home,
     },
     {
-      title: "Profiles",
-      url: "/profiles",
+      title: sidebarDict.profiles,
+      url: `/${currentLocale}/profiles`,
       icon: Users,
     },
     {
-      title: "Customers",
-      url: "/customers",
+      title: sidebarDict.customers,
+      url: `/${currentLocale}/customers`,
       icon: BriefcaseBusiness,
     },
   ]
@@ -48,40 +51,40 @@ export function AppSidebar() {
     const { error } = await supabase.auth.signOut()
     if (error) {
       toast({
-        title: "Logout Failed",
+        title: sidebarDict.logoutFailed,
         description: error.message,
         variant: "destructive",
       })
     } else {
       toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
+        title: sidebarDict.loggedOut,
+        description: sidebarDict.loggedOutDescription,
       })
-      router.push("/login")
+      router.push("/login") // Redirect to non-locale prefixed login page
     }
   }
 
   const handleNavLinkClick = (url: string) => {
     if (isMobile) {
-      setOpenMobile(false) // Close the sidebar on mobile first
+      setOpenMobile(false)
     }
-    router.push(url) // Then navigate
+    router.push(url)
   }
 
   return (
     <Sidebar>
       <>
         <SidebarHeader>
-          <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+          <Link href={`/${currentLocale}/`} className="flex items-center gap-2 font-semibold text-lg">
             <div className="flex items-center gap-2">
               <BriefcaseBusiness className="h-6 w-6" />
-              <span>CRM App</span>
+              <span>{sidebarDict.appName}</span>
             </div>
           </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel>{sidebarDict.navigation}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.map((item) => (
@@ -104,7 +107,7 @@ export function AppSidebar() {
                   <SidebarMenuButton onClick={handleLogout}>
                     <div className="flex items-center gap-2">
                       <LogOut />
-                      <span>Logout</span>
+                      <span>{sidebarDict.logout}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

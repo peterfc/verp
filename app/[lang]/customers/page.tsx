@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader } from "@/components/ui/table" // Removed TableRow import
+import { Table, TableBody, TableCell, TableHead, TableHeader } from "@/components/ui/table"
 import { CustomerForm } from "@/components/customer-form"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { MoreHorizontal } from "lucide-react"
@@ -16,7 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils" // Import cn utility for class names
+import { cn } from "@/lib/utils"
+import { getDictionary } from "../dictionaries" // Import dictionary
 
 interface Profile {
   id: string
@@ -29,10 +30,10 @@ interface Customer {
   name: string
   contact: string
   industry: string
-  profiles: Profile[] // Now includes associated profiles
+  profiles: Profile[]
 }
 
-export default function CustomersPage() {
+export default async function CustomersPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>(undefined)
@@ -41,6 +42,15 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const [dict, setDict] = useState<any>(null) // State to hold dictionary
+
+  useEffect(() => {
+    const loadDictionary = async () => {
+      const loadedDict = await getDictionary(lang)
+      setDict(loadedDict)
+    }
+    loadDictionary()
+  }, [lang])
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true)
@@ -53,21 +63,24 @@ export default function CustomersPage() {
       const data: Customer[] = await response.json()
       setCustomers(data)
     } catch (err: any) {
-      setError(err.message || "Failed to fetch customers.")
+      setError(err.message || dict?.customersPage.failedToFetchCustomers || "Failed to fetch customers.")
       toast({
-        title: "Error",
-        description: err.message || "Failed to fetch customers.",
+        title: dict?.common.error || "Error",
+        description: err.message || dict?.customersPage.failedToFetchCustomers || "Failed to fetch customers.",
         variant: "destructive",
       })
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [dict, toast])
 
   useEffect(() => {
-    fetchCustomers()
-  }, [fetchCustomers])
+    if (dict) {
+      // Only fetch if dictionary is loaded
+      fetchCustomers()
+    }
+  }, [fetchCustomers, dict])
 
   const handleSaveCustomer = async (customerData: {
     id?: string
@@ -83,31 +96,31 @@ export default function CustomersPage() {
         response = await fetch(`/api/customers/${customerData.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(customerData), // Send all data including profile_ids
+          body: JSON.stringify(customerData),
         })
       } else {
         response = await fetch("/api/customers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(customerData), // Send all data including profile_ids
+          body: JSON.stringify(customerData),
         })
       }
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to save customer.")
+        throw new Error(errorData.error || dict?.customersPage.failedToSaveCustomer || "Failed to save customer.")
       }
       toast({
-        title: "Success",
-        description: "Customer saved successfully.",
+        title: dict?.common.success || "Success",
+        description: dict?.customersPage.customerSaved || "Customer saved successfully.",
       })
-      fetchCustomers() // Re-fetch customers to update the list
+      fetchCustomers()
       setIsFormOpen(false)
     } catch (err: any) {
-      setError(err.message || "Failed to save customer.")
+      setError(err.message || dict?.customersPage.failedToSaveCustomer || "Failed to save customer.")
       toast({
-        title: "Error",
-        description: err.message || "Failed to save customer.",
+        title: dict?.common.error || "Error",
+        description: err.message || dict?.customersPage.failedToSaveCustomer || "Failed to save customer.",
         variant: "destructive",
       })
       console.error(err)
@@ -124,20 +137,20 @@ export default function CustomersPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to delete customer.")
+        throw new Error(errorData.error || dict?.customersPage.failedToDeleteCustomer || "Failed to delete customer.")
       }
       toast({
-        title: "Success",
-        description: "Customer deleted successfully.",
+        title: dict?.common.success || "Success",
+        description: dict?.customersPage.customerDeleted || "Customer deleted successfully.",
       })
-      fetchCustomers() // Re-fetch customers to update the list
+      fetchCustomers()
       setIsDeleteDialogOpen(false)
       setCustomerToDelete(undefined)
     } catch (err: any) {
-      setError(err.message || "Failed to delete customer.")
+      setError(err.message || dict?.customersPage.failedToDeleteCustomer || "Failed to delete customer.")
       toast({
-        title: "Error",
-        description: err.message || "Failed to delete customer.",
+        title: dict?.common.error || "Error",
+        description: err.message || dict?.customersPage.failedToDeleteCustomer || "Failed to delete customer.",
         variant: "destructive",
       })
       console.error(err)
@@ -154,52 +167,53 @@ export default function CustomersPage() {
     setIsDeleteDialogOpen(true)
   }
 
+  if (!dict) return null // Don't render until dictionary is loaded
+
   return (
     <div className="grid gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-2xl font-bold">Customers</CardTitle>
+          <CardTitle className="text-2xl font-bold">{dict.customersPage.title}</CardTitle>
           <Button
             onClick={() => {
               setEditingCustomer(undefined)
               setIsFormOpen(true)
             }}
           >
-            Add Customer
+            {dict.common.add.replace("{itemType}", dict.customersPage.title.toLowerCase())}
           </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">Loading customers...</div>
+            <div className="text-center py-4">{dict.customersPage.loadingCustomers}</div>
           ) : error ? (
-            <div className="text-center py-4 text-red-500">Error: {error}</div>
+            <div className="text-center py-4 text-red-500">
+              {dict.common.error}: {error}
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                {/* Using native <tr> for TableHeader and rendering TableHead as an array */}
                 <tr className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}>
                   {[
-                    <TableHead key="name">Name</TableHead>,
-                    <TableHead key="contact">Contact</TableHead>,
-                    <TableHead key="industry">Industry</TableHead>,
-                    <TableHead key="profiles">Associated Profiles</TableHead>,
+                    <TableHead key="name">{dict.common.name}</TableHead>,
+                    <TableHead key="contact">{dict.customersPage.contact}</TableHead>,
+                    <TableHead key="industry">{dict.customersPage.industry}</TableHead>,
+                    <TableHead key="profiles">{dict.customersPage.associatedProfiles}</TableHead>,
                     <TableHead key="actions" className="text-right">
-                      Actions
+                      {dict.common.actions}
                     </TableHead>,
                   ]}
                 </tr>
               </TableHeader>
               <TableBody>
                 {customers.length === 0 ? (
-                  // Using native <tr> for "No customers found" row
                   <tr className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}>
                     <TableCell colSpan={5} className="text-center py-4">
-                      No customers found.
+                      {dict.common.noDataFound.replace("{itemType}", dict.customersPage.title.toLowerCase())}
                     </TableCell>
                   </tr>
                 ) : (
                   customers.map((customer) => (
-                    // Using native <tr> here and rendering TableCell as an array
                     <tr
                       key={customer.id}
                       className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}
@@ -217,15 +231,19 @@ export default function CustomersPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">{dict.common.actions}</span>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditForm(customer)}>Edit</DropdownMenuItem>
+                              <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditForm(customer)}>
+                                {dict.common.edit}
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openDeleteConfirm(customer)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDeleteConfirm(customer)}>
+                                {dict.common.delete}
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>,
@@ -244,6 +262,23 @@ export default function CustomersPage() {
         onOpenChange={setIsFormOpen}
         customer={editingCustomer}
         onSave={handleSaveCustomer}
+        dict={{
+          editTitle: dict.customerForm.editTitle,
+          addTitle: dict.customerForm.addTitle,
+          editDescription: dict.customerForm.editDescription,
+          addDescription: dict.customerForm.addDescription,
+          nameLabel: dict.common.name,
+          contactLabel: dict.customerForm.contactLabel,
+          industryLabel: dict.customerForm.industryLabel,
+          profilesLabel: dict.customerForm.profilesLabel,
+          saveChangesButton: dict.common.saveChanges,
+          addCustomerButton: dict.common.add.replace("{itemType}", dict.customersPage.title.toLowerCase()),
+          errorFetchingProfiles: dict.customerForm.errorFetchingProfiles,
+          failedToLoadProfiles: dict.customerForm.failedToLoadProfiles,
+          selectProfilesPlaceholder: dict.multiSelectProfiles.selectProfilesPlaceholder,
+          searchProfilesPlaceholder: dict.multiSelectProfiles.searchProfilesPlaceholder,
+          noProfilesFound: dict.multiSelectProfiles.noProfilesFound,
+        }}
       />
 
       {customerToDelete && (
@@ -251,8 +286,14 @@ export default function CustomersPage() {
           isOpen={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
           onConfirm={handleDeleteCustomer}
-          itemType="customer"
+          itemType={dict.customersPage.title.toLowerCase()}
           itemName={customerToDelete.name}
+          dict={{
+            confirmTitle: dict.common.confirmDeletion,
+            confirmDescription: dict.common.confirmDeletionDescription,
+            cancelButton: dict.common.cancel,
+            deleteButton: dict.common.deleteButton,
+          }}
         />
       )}
     </div>

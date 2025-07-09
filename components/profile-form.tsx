@@ -20,9 +20,19 @@ interface ProfileFormProps {
   onOpenChange: (open: boolean) => void
   profile?: { id: string; name: string; email: string }
   onSave: (profile: { id?: string; name: string; email: string }) => void
+  dict: {
+    editTitle: string
+    addTitle: string
+    editDescription: string
+    addDescription: string
+    nameLabel: string
+    emailLabel: string
+    saveChangesButton: string
+    addProfileButton: string
+  }
 }
 
-export function ProfileForm({ isOpen, onOpenChange, profile, onSave }: ProfileFormProps) {
+export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict }: ProfileFormProps) {
   const [name, setName] = useState(profile?.name || "")
   const [email, setEmail] = useState(profile?.email || "")
 
@@ -46,21 +56,19 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave }: ProfileFo
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{profile ? "Edit Profile" : "Add Profile"}</DialogTitle>
-          <DialogDescription>
-            {profile ? "Make changes to the profile here." : "Add a new profile to your list."}
-          </DialogDescription>
+          <DialogTitle>{profile ? dict.editTitle : dict.addTitle}</DialogTitle>
+          <DialogDescription>{profile ? dict.editDescription : dict.addDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              {dict.nameLabel}
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">
-              Email
+              {dict.emailLabel}
             </Label>
             <Input
               id="email"
@@ -72,7 +80,7 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave }: ProfileFo
             />
           </div>
           <DialogFooter>
-            <Button type="submit">{profile ? "Save changes" : "Add Profile"}</Button>
+            <Button type="submit">{profile ? dict.saveChangesButton : dict.addProfileButton}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MultiSelectProfiles } from "./multi-select-profiles" // Import the new component
+import { MultiSelectProfiles } from "./multi-select-profiles"
 import { useToast } from "@/hooks/use-toast"
 
 interface Profile {
@@ -28,9 +28,27 @@ interface CustomerFormProps {
   onOpenChange: (open: boolean) => void
   customer?: { id: string; name: string; contact: string; industry: string; profiles?: Profile[] }
   onSave: (customer: { id?: string; name: string; contact: string; industry: string; profile_ids: string[] }) => void
+  dict: {
+    // Add dictionary prop
+    editTitle: string
+    addTitle: string
+    editDescription: string
+    addDescription: string
+    nameLabel: string
+    contactLabel: string
+    industryLabel: string
+    profilesLabel: string
+    saveChangesButton: string
+    addCustomerButton: string
+    errorFetchingProfiles: string
+    failedToLoadProfiles: string
+    selectProfilesPlaceholder: string
+    searchProfilesPlaceholder: string
+    noProfilesFound: string
+  }
 }
 
-export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: CustomerFormProps) {
+export function CustomerForm({ isOpen, onOpenChange, customer, onSave, dict }: CustomerFormProps) {
   const [name, setName] = useState(customer?.name || "")
   const [contact, setContact] = useState(customer?.contact || "")
   const [industry, setIndustry] = useState(customer?.industry || "")
@@ -38,7 +56,6 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
   const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([])
   const { toast } = useToast()
 
-  // Fetch all profiles when the dialog opens
   useEffect(() => {
     if (isOpen) {
       const fetchAllProfiles = async () => {
@@ -51,8 +68,8 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
           setAllProfiles(data)
         } catch (err: any) {
           toast({
-            title: "Error fetching profiles",
-            description: err.message || "Failed to load profiles for selection.",
+            title: dict.errorFetchingProfiles,
+            description: err.message || dict.failedToLoadProfiles,
             variant: "destructive",
           })
           console.error(err)
@@ -60,9 +77,8 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
       }
       fetchAllProfiles()
     }
-  }, [isOpen, toast])
+  }, [isOpen, toast, dict])
 
-  // Populate form fields and selected profiles when customer prop changes
   useEffect(() => {
     if (customer) {
       setName(customer.name)
@@ -87,21 +103,19 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{customer ? "Edit Customer" : "Add Customer"}</DialogTitle>
-          <DialogDescription>
-            {customer ? "Make changes to the customer here." : "Add a new customer to your list."}
-          </DialogDescription>
+          <DialogTitle>{customer ? dict.editTitle : dict.addTitle}</DialogTitle>
+          <DialogDescription>{customer ? dict.editDescription : dict.addDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              {dict.nameLabel}
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="contact" className="text-right">
-              Contact
+              {dict.contactLabel}
             </Label>
             <Input
               id="contact"
@@ -114,7 +128,7 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="industry" className="text-right">
-              Industry
+              {dict.industryLabel}
             </Label>
             <Input
               id="industry"
@@ -126,18 +140,23 @@ export function CustomerForm({ isOpen, onOpenChange, customer, onSave }: Custome
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="profiles" className="text-right">
-              Profiles
+              {dict.profilesLabel}
             </Label>
             <div className="col-span-3">
               <MultiSelectProfiles
                 profiles={allProfiles}
                 selectedProfileIds={selectedProfileIds}
                 onSelectionChange={setSelectedProfileIds}
+                dict={{
+                  selectProfilesPlaceholder: dict.selectProfilesPlaceholder,
+                  searchProfilesPlaceholder: dict.searchProfilesPlaceholder,
+                  noProfilesFound: dict.noProfilesFound,
+                }}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">{customer ? "Save changes" : "Add Customer"}</Button>
+            <Button type="submit">{customer ? dict.saveChangesButton : dict.addCustomerButton}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

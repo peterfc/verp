@@ -16,24 +16,31 @@ interface DeleteDialogProps {
   onConfirm: () => void
   itemType: string
   itemName: string
+  dict: {
+    // Add dictionary prop
+    confirmTitle: string
+    confirmDescription: string
+    cancelButton: string
+    deleteButton: string
+  }
 }
 
-export function DeleteDialog({ isOpen, onOpenChange, onConfirm, itemType, itemName }: DeleteDialogProps) {
+export function DeleteDialog({ isOpen, onOpenChange, onConfirm, itemType, itemName, dict }: DeleteDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm Deletion</DialogTitle>
+          <DialogTitle>{dict.confirmTitle}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the {itemType} &quot;{itemName}&quot;? This action cannot be undone.
+            {dict.confirmDescription.replace("{itemType}", itemType).replace("{itemName}", itemName)}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {dict.cancelButton}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
-            Delete
+            {dict.deleteButton}
           </Button>
         </DialogFooter>
       </DialogContent>

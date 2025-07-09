@@ -1,0 +1,101 @@
+{
+  "common": {
+    "name": "Name",
+    "email": "Email",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "noDataFound": "No {itemType} found.",
+    "confirmDeletion": "Confirm Deletion",
+    "confirmDeletionDescription": "Are you sure you want to delete the {itemType} \"{itemName}\"? This action cannot be undone.",
+    "deleteButton": "Delete",
+    "add": "Add {itemType}"
+  },
+  "layout": {
+    "dashboardTitle": "Dashboard",
+    "toggleSidebar": "Toggle Sidebar",
+    "metadataTitle": "Customer & User Management",
+    "metadataDescription": "A modern web app to manage customers and users."
+  },
+  "sidebar": {
+    "appName": "CRM App",
+    "navigation": "Navigation",
+    "dashboard": "Dashboard",
+    "profiles": "Profiles",
+    "customers": "Customers",
+    "logout": "Logout",
+    "logoutFailed": "Logout Failed",
+    "loggedOut": "Logged Out",
+    "loggedOutDescription": "You have been successfully logged out."
+  },
+  "homePage": {
+    "welcomeTitle": "Welcome to CRM App",
+    "welcomeDescription": "Navigate to manage your profiles and customers.",
+    "manageProfiles": "Manage Profiles",
+    "manageCustomers": "Manage Customers"
+  },
+  "profilesPage": {
+    "title": "Profiles",
+    "loadingProfiles": "Loading profiles...",
+    "failedToFetchProfiles": "Failed to fetch profiles.",
+    "actionNotAllowed": "Action Not Allowed",
+    "newProfilesSignup": "New profiles are created via the signup process.",
+    "profileSaved": "Profile saved successfully.",
+    "profileDeleted": "Profile deleted successfully.",
+    "failedToSaveProfile": "Failed to save profile.",
+    "failedToDeleteProfile": "Failed to delete profile."
+  },
+  "profileForm": {
+    "editTitle": "Edit Profile",
+    "addTitle": "Add Profile",
+    "editDescription": "Make changes to the profile here.",
+    "addDescription": "Add a new profile to your list."
+  },
+  "customersPage": {
+    "title": "Customers",
+    "loadingCustomers": "Loading customers...",
+    "failedToFetchCustomers": "Failed to fetch customers.",
+    "customerSaved": "Customer saved successfully.",
+    "customerDeleted": "Customer deleted successfully.",
+    "failedToSaveCustomer": "Failed to save customer.",
+    "failedToDeleteCustomer": "Failed to delete customer.",
+    "contact": "Contact",
+    "industry": "Industry",
+    "associatedProfiles": "Associated Profiles"
+  },
+  "customerForm": {
+    "editTitle": "Edit Customer",
+    "addTitle": "Add Customer",
+    "editDescription": "Make changes to the customer here.",
+    "addDescription": "Add a new customer to your list.",
+    "contactLabel": "Contact",
+    "industryLabel": "Industry",
+    "profilesLabel": "Profiles",
+    "errorFetchingProfiles": "Error fetching profiles",
+    "failedToLoadProfiles": "Failed to load profiles for selection."
+  },
+  "multiSelectProfiles": {
+    "selectProfilesPlaceholder": "Select profiles...",
+    "searchProfilesPlaceholder": "Search profiles...",
+    "noProfilesFound": "No profiles found."
+  },
+  "loginPage": {
+    "title": "Login or Sign Up",
+    "description": "Enter your email and password to access the CRM app.",
+    "email": "Email",
+    "password": "Password",
+    "login": "Login",
+    "signUp": "Sign Up",
+    "loginFailed": "Login Failed",
+    "loginSuccessful": "Login Successful",
+    "redirecting": "Redirecting to dashboard...",
+    "signUpFailed": "Sign Up Failed",
+    "signUpSuccessful": "Sign Up Successful",
+    "confirmEmail": "Please check your email to confirm your account (if email confirmation is enabled)."
+  }
+}
