@@ -19,15 +19,15 @@
   "layout": {
     "dashboardTitle": "Dashboard",
     "toggleSidebar": "Toggle Sidebar",
-    "metadataTitle": "Customer & User Management",
-    "metadataDescription": "A modern web app to manage customers and users."
+    "metadataTitle": "Organization & User Management",
+    "metadataDescription": "A modern web app to manage organizations and users."
   },
   "sidebar": {
     "appName": "CRM App",
     "navigation": "Navigation",
     "dashboard": "Dashboard",
     "profiles": "Profiles",
-    "customers": "Customers",
+    "organizations": "Organizations",
     "logout": "Logout",
     "logoutFailed": "Logout Failed",
     "loggedOut": "Logged Out",
@@ -35,9 +35,9 @@
   },
   "homePage": {
     "welcomeTitle": "Welcome to CRM App",
-    "welcomeDescription": "Navigate to manage your profiles and customers.",
+    "welcomeDescription": "Navigate to manage your profiles and organizations.",
     "manageProfiles": "Manage Profiles",
-    "manageCustomers": "Manage Customers"
+    "manageOrganizations": "Manage Organizations"
   },
   "profilesPage": {
     "title": "Profiles",
@@ -63,23 +63,23 @@
       "user": "User"
     }
   },
-  "customersPage": {
-    "title": "Customers",
-    "loadingCustomers": "Loading customers...",
-    "failedToFetchCustomers": "Failed to fetch customers.",
-    "customerSaved": "Customer saved successfully.",
-    "customerDeleted": "Customer deleted successfully.",
-    "failedToSaveCustomer": "Failed to save customer.",
-    "failedToDeleteCustomer": "Failed to delete customer.",
+  "organizationsPage": {
+    "title": "Organizations",
+    "loadingOrganizations": "Loading organizations...",
+    "failedToFetchOrganizations": "Failed to fetch organizations.",
+    "organizationSaved": "Organization saved successfully.",
+    "organizationDeleted": "Organization deleted successfully.",
+    "failedToSaveOrganization": "Failed to save organization.",
+    "failedToDeleteOrganization": "Failed to delete organization.",
     "contact": "Contact",
     "industry": "Industry",
     "associatedProfiles": "Associated Profiles"
   },
-  "customerForm": {
-    "editTitle": "Edit Customer",
-    "addTitle": "Add Customer",
-    "editDescription": "Make changes to the customer here.",
-    "addDescription": "Add a new customer to your list.",
+  "organizationForm": {
+    "editTitle": "Edit Organization",
+    "addTitle": "Add Organization",
+    "editDescription": "Make changes to the organization here.",
+    "addDescription": "Add a new organization to your list.",
     "contactLabel": "Contact",
     "industryLabel": "Industry",
     "profilesLabel": "Profiles",

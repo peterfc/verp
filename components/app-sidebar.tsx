@@ -41,8 +41,8 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
       icon: Users,
     },
     {
-      title: sidebarDict.customers,
-      url: `/${currentLocale}/customers`,
+      title: sidebarDict.organizations, // Updated key
+      url: `/${currentLocale}/organizations`, // Updated URL
       icon: BriefcaseBusiness,
     },
   ]

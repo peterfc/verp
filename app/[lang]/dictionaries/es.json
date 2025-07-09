@@ -19,15 +19,15 @@
   "layout": {
     "dashboardTitle": "Panel de control",
     "toggleSidebar": "Alternar barra lateral",
-    "metadataTitle": "Gestión de Clientes y Usuarios",
-    "metadataDescription": "Una aplicación web moderna para gestionar clientes y usuarios."
+    "metadataTitle": "Gestión de Organizaciones y Usuarios",
+    "metadataDescription": "Una aplicación web moderna para gestionar organizaciones y usuarios."
   },
   "sidebar": {
     "appName": "Aplicación CRM",
     "navigation": "Navegación",
     "dashboard": "Panel de control",
     "profiles": "Perfiles",
-    "customers": "Clientes",
+    "organizations": "Organizaciones",
     "logout": "Cerrar sesión",
     "logoutFailed": "Error al cerrar sesión",
     "loggedOut": "Sesión cerrada",
@@ -35,9 +35,9 @@
   },
   "homePage": {
     "welcomeTitle": "Bienvenido a la aplicación CRM",
-    "welcomeDescription": "Navega para gestionar tus perfiles y clientes.",
+    "welcomeDescription": "Navega para gestionar tus perfiles y organizaciones.",
     "manageProfiles": "Gestionar perfiles",
-    "manageCustomers": "Gestionar clientes"
+    "manageOrganizations": "Gestionar organizaciones"
   },
   "profilesPage": {
     "title": "Perfiles",
@@ -63,23 +63,23 @@
       "user": "Usuario"
     }
   },
-  "customersPage": {
-    "title": "Clientes",
-    "loadingCustomers": "Cargando clientes...",
-    "failedToFetchCustomers": "Error al cargar clientes.",
-    "customerSaved": "Cliente guardado correctamente.",
-    "customerDeleted": "Cliente eliminado correctamente.",
-    "failedToSaveCustomer": "Error al guardar cliente.",
-    "failedToDeleteCustomer": "Error al eliminar cliente.",
+  "organizationsPage": {
+    "title": "Organizaciones",
+    "loadingOrganizations": "Cargando organizaciones...",
+    "failedToFetchOrganizations": "Error al cargar organizaciones.",
+    "organizationSaved": "Organización guardada correctamente.",
+    "organizationDeleted": "Organización eliminada correctamente.",
+    "failedToSaveOrganization": "Error al guardar organización.",
+    "failedToDeleteOrganization": "Error al eliminar organización.",
     "contact": "Contacto",
     "industry": "Industria",
     "associatedProfiles": "Perfiles asociados"
   },
-  "customerForm": {
-    "editTitle": "Editar cliente",
-    "addTitle": "Añadir cliente",
-    "editDescription": "Realiza cambios en el cliente aquí.",
-    "addDescription": "Añade un nuevo cliente a tu lista.",
+  "organizationForm": {
+    "editTitle": "Editar organización",
+    "addTitle": "Añadir organización",
+    "editDescription": "Realiza cambios en la organización aquí.",
+    "addDescription": "Añade una nueva organización a tu lista.",
     "contactLabel": "Contacto",
     "industryLabel": "Industria",
     "profilesLabel": "Perfiles",

@@ -19,7 +19,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: "
               <Link href={`/${lang}/profiles`}>{dict.homePage.manageProfiles}</Link>
             </Button>
             <Button asChild className="w-full">
-              <Link href={`/${lang}/customers`}>{dict.homePage.manageCustomers}</Link>
+              <Link href={`/${lang}/organizations`}>{dict.homePage.manageOrganizations}</Link>
             </Button>
           </div>
         </CardContent>
