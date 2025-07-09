@@ -48,13 +48,20 @@
     "profileSaved": "Perfil guardado correctamente.",
     "profileDeleted": "Perfil eliminado correctamente.",
     "failedToSaveProfile": "Error al guardar perfil.",
-    "failedToDeleteProfile": "Error al eliminar perfil."
+    "failedToDeleteProfile": "Error al eliminar perfil.",
+    "type": "Tipo"
   },
   "profileForm": {
     "editTitle": "Editar perfil",
     "addTitle": "Añadir perfil",
     "editDescription": "Realiza cambios en el perfil aquí.",
-    "addDescription": "Añade un nuevo perfil a tu lista."
+    "addDescription": "Añade un nuevo perfil a tu lista.",
+    "typeLabel": "Tipo",
+    "typeOptions": {
+      "administrator": "Administrador",
+      "manager": "Gerente",
+      "user": "Usuario"
+    }
   },
   "customersPage": {
     "title": "Clientes",

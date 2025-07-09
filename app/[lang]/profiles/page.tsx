@@ -22,6 +22,7 @@ interface Profile {
   id: string
   name: string
   email: string
+  type: string // Add type to Profile interface
 }
 
 export default function ProfilesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
@@ -58,12 +59,19 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
             profileDeleted: "Profile deleted successfully.",
             failedToSaveProfile: "Failed to save profile.",
             failedToDeleteProfile: "Failed to delete profile.",
+            type: "Type", // Add type translation
           },
           profileForm: {
             editTitle: "Edit Profile",
             addTitle: "Add Profile",
             editDescription: "Make changes to the profile here.",
             addDescription: "Add a new profile to your list.",
+            typeLabel: "Type", // Add type label
+            typeOptions: {
+              administrator: "Administrator",
+              manager: "Manager",
+              user: "User",
+            },
           },
           common: {
             name: "Name",
@@ -119,7 +127,7 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
     }
   }, [fetchProfiles, dict])
 
-  const handleSaveProfile = async (profile: { id?: string; name: string; email: string }) => {
+  const handleSaveProfile = async (profile: { id?: string; name: string; email: string; type: string }) => {
     setError(null)
     try {
       let response: Response
@@ -127,7 +135,7 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
         response = await fetch(`/api/profiles/${profile.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: profile.name, email: profile.email }),
+          body: JSON.stringify({ name: profile.name, email: profile.email, type: profile.type }), // Pass type
         })
       } else {
         toast({
@@ -220,41 +228,47 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
                 <TableRow>
                   <TableHead>{dict.common.name}</TableHead>
                   <TableHead>{dict.common.email}</TableHead>
+                  <TableHead>{dict.profilesPage.type}</TableHead> {/* New: Type column header */}
                   <TableHead className="text-right">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {profiles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">
+                    <TableCell colSpan={4} className="text-center py-4">
                       {dict.common.noDataFound.replace("{itemType}", dict.profilesPage.title.toLowerCase())}
                     </TableCell>
                   </TableRow>
                 ) : (
                   profiles.map((profile) => (
                     <TableRow key={profile.id}>
-                      <TableCell className="font-medium">{profile.name}</TableCell>
-                      <TableCell>{profile.email}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">{dict.common.actions}</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditForm(profile)}>
-                              {dict.common.edit}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openDeleteConfirm(profile)}>
-                              {dict.common.delete}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      {[
+                        <TableCell key="name" className="font-medium">
+                          {profile.name}
+                        </TableCell>,
+                        <TableCell key="email">{profile.email}</TableCell>,
+                        <TableCell key="type">{profile.type}</TableCell>,
+                        <TableCell key="actions" className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">{dict.common.actions}</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditForm(profile)}>
+                                {dict.common.edit}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openDeleteConfirm(profile)}>
+                                {dict.common.delete}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>,
+                      ]}
                     </TableRow>
                   ))
                 )}
@@ -276,6 +290,8 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
           addDescription: dict.profileForm.addDescription,
           nameLabel: dict.common.name,
           emailLabel: dict.common.email,
+          typeLabel: dict.profileForm.typeLabel, // Pass type label
+          typeOptions: dict.profileForm.typeOptions, // Pass type options
           saveChangesButton: dict.common.saveChanges,
           addProfileButton: dict.common.add.replace("{itemType}", dict.profilesPage.title.toLowerCase()),
         }}

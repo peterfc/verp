@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { CustomerForm } from "@/components/customer-form"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { MoreHorizontal } from "lucide-react"
@@ -16,8 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-// Removed: import { getDictionary } from "../dictionaries"
 
 interface Profile {
   id: string
@@ -92,7 +90,7 @@ export default function CustomersPage({ params: { lang } }: { params: { lang: "e
             edit: "Edit",
             delete: "Delete",
             saveChanges: "Save changes",
-            cancel: "Cancel",
+            cancel: "Cancelar",
             loading: "Loading...",
             error: "Error",
             success: "Success",
@@ -250,31 +248,24 @@ export default function CustomersPage({ params: { lang } }: { params: { lang: "e
           ) : (
             <Table>
               <TableHeader>
-                <tr className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}>
-                  {[
-                    <TableHead key="name">{dict.common.name}</TableHead>,
-                    <TableHead key="contact">{dict.customersPage.contact}</TableHead>,
-                    <TableHead key="industry">{dict.customersPage.industry}</TableHead>,
-                    <TableHead key="profiles">{dict.customersPage.associatedProfiles}</TableHead>,
-                    <TableHead key="actions" className="text-right">
-                      {dict.common.actions}
-                    </TableHead>,
-                  ]}
-                </tr>
+                <TableRow>
+                  <TableHead>{dict.common.name}</TableHead>
+                  <TableHead>{dict.customersPage.contact}</TableHead>
+                  <TableHead>{dict.customersPage.industry}</TableHead>
+                  <TableHead>{dict.customersPage.associatedProfiles}</TableHead>
+                  <TableHead className="text-right">{dict.common.actions}</TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody>
                 {customers.length === 0 ? (
-                  <tr className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}>
+                  <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">
                       {dict.common.noDataFound.replace("{itemType}", dict.customersPage.title.toLowerCase())}
                     </TableCell>
-                  </tr>
+                  </TableRow>
                 ) : (
                   customers.map((customer) => (
-                    <tr
-                      key={customer.id}
-                      className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted")}
-                    >
+                    <TableRow key={customer.id}>
                       {[
                         <TableCell key="name" className="font-medium">
                           {customer.name}
@@ -305,7 +296,7 @@ export default function CustomersPage({ params: { lang } }: { params: { lang: "e
                           </DropdownMenu>
                         </TableCell>,
                       ]}
-                    </tr>
+                    </TableRow>
                   ))
                 )}
               </TableBody>

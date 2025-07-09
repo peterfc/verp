@@ -24,9 +24,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const cookieStore = cookies()
   const supabase = createServerClient(cookieStore)
   const { id } = params
-  const { name, email } = await request.json()
+  const { name, email, type } = await request.json() // Destructure 'type'
 
-  const { data, error } = await supabase.from("profiles").update({ name, email }).eq("id", id).select().single()
+  const { data, error } = await supabase.from("profiles").update({ name, email, type }).eq("id", id).select().single() // Include 'type' in update
 
   if (error) {
     console.error("Error updating profile:", error)

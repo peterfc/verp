@@ -48,13 +48,20 @@
     "profileSaved": "Profile saved successfully.",
     "profileDeleted": "Profile deleted successfully.",
     "failedToSaveProfile": "Failed to save profile.",
-    "failedToDeleteProfile": "Failed to delete profile."
+    "failedToDeleteProfile": "Failed to delete profile.",
+    "type": "Type"
   },
   "profileForm": {
     "editTitle": "Edit Profile",
     "addTitle": "Add Profile",
     "editDescription": "Make changes to the profile here.",
-    "addDescription": "Add a new profile to your list."
+    "addDescription": "Add a new profile to your list.",
+    "typeLabel": "Type",
+    "typeOptions": {
+      "administrator": "Administrator",
+      "manager": "Manager",
+      "user": "User"
+    }
   },
   "customersPage": {
     "title": "Customers",
