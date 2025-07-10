@@ -16,6 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
+import { createBrowserClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 interface Profile {
   id: string
@@ -41,6 +43,30 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null) // State to hold dictionary
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const fetchUserAndProfile = async () => {
+      if (!supabase) return
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setCurrentUser(user)
+
+      if (user) {
+        const { data: profile, error } = await supabase.from("profiles").select("type").eq("id", user.id).single()
+        if (error) {
+          console.error("Error fetching user profile type:", error)
+        } else if (profile) {
+          setIsAdmin(profile.type === "Administrator")
+        }
+      }
+    }
+    fetchUserAndProfile()
+  }, [supabase])
 
   useEffect(() => {
     const loadDictionary = async () => {
@@ -243,15 +269,17 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
     <div className="grid gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-2xl font-bold">{dict.organizationsPage.title}</CardTitle> {/* Updated key */}
-          <Button
-            onClick={() => {
-              setEditingOrganization(undefined)
-              setIsFormOpen(true)
-            }}
-          >
-            {dict.common.add.replace("{itemType}", dict.organizationsPage.title.toLowerCase())} {/* Updated key */}
-          </Button>
+          <CardTitle className="text-2xl font-bold">{dict.organizationsPage.title}</CardTitle>
+          {isAdmin && ( // Only show if the user is an admin
+            <Button
+              onClick={() => {
+                setEditingOrganization(undefined)
+                setIsFormOpen(true)
+              }}
+            >
+              {dict.common.add.replace("{itemType}", dict.organizationsPage.title.toLowerCase())}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -314,9 +342,11 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
                                   {dict.common.edit}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => openDeleteConfirm(organization)}>
-                                  {dict.common.delete}
-                                </DropdownMenuItem>
+                                {isAdmin && ( // Conditionally render delete option
+                                  <DropdownMenuItem onClick={() => openDeleteConfirm(organization)}>
+                                    {dict.common.delete}
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>,
