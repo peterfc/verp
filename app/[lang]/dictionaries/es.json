@@ -20,7 +20,8 @@
     "dashboardTitle": "Panel de control",
     "toggleSidebar": "Alternar barra lateral",
     "metadataTitle": "Gestión de Organizaciones y Usuarios",
-    "metadataDescription": "Una aplicación web moderna para gestionar organizaciones y usuarios."
+    "metadataDescription": "Una aplicación web moderna para gestionar organizaciones y usuarios.",
+    "guest": "Invitado"
   },
   "sidebar": {
     "appName": "Aplicación CRM",

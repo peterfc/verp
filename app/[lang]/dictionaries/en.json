@@ -20,7 +20,8 @@
     "dashboardTitle": "Dashboard",
     "toggleSidebar": "Toggle Sidebar",
     "metadataTitle": "Organization & User Management",
-    "metadataDescription": "A modern web app to manage organizations and users."
+    "metadataDescription": "A modern web app to manage organizations and users.",
+    "guest": "Guest"
   },
   "sidebar": {
     "appName": "CRM App",

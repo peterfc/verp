@@ -292,9 +292,13 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
                           <TableCell key="contact">{organization.contact}</TableCell>,
                           <TableCell key="industry">{organization.industry}</TableCell>,
                           <TableCell key="profiles">
-                            {organization.profiles?.length
-                              ? organization.profiles.map((p) => p.name).join(", ")
-                              : "None"}
+                            {
+                              /* Safely collect profile names, ignoring null / undefined entries */
+                              (organization.profiles ?? [])
+                                .filter((pr) => pr && pr.name)
+                                .map((pr) => pr!.name)
+                                .join(", ") || "None"
+                            }
                           </TableCell>,
                           <TableCell key="actions" className="text-right">
                             <DropdownMenu>

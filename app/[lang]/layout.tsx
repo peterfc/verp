@@ -9,6 +9,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { getDictionary } from "./dictionaries"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { createServerClient } from "@/lib/supabase/server"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,6 +28,12 @@ export default async function LocaleLayout({
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
   const dict = await getDictionary(lang)
 
+  const supabase = createServerClient(cookieStore)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const userName = user?.user_metadata?.name || user?.email || dict.layout.guest
+
   return (
     <>
       <SidebarProvider defaultOpen={defaultOpen}>
@@ -39,7 +46,8 @@ export default async function LocaleLayout({
               </CustomSidebarTrigger>
               <Separator orientation="vertical" className="mr-2 h-4" />
               <h1 className="text-lg font-semibold">{dict.layout.dashboardTitle}</h1>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-4">
+                <span className="text-sm font-medium">{userName}</span>
                 <LanguageSwitcher />
               </div>
             </header>
