@@ -221,18 +221,24 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
               )}
 
               {field.type === "dropdown" && (
-                <Select value={formData[field.name] ?? ""} onValueChange={(v) => handleChange(field.name, v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${field.name}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {field.options?.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <>
+                  {/* Debug info for dropdown */}
+                  <div className="text-xs text-gray-500 mb-2">
+                    Debug: Field options = {JSON.stringify(field.options)}
+                  </div>
+                  <Select value={formData[field.name] ?? ""} onValueChange={(v) => handleChange(field.name, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${field.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
               )}
 
               {errors[field.name] && <p className="text-red-500 text-sm">{errors[field.name]}</p>}
