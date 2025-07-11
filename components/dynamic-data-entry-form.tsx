@@ -48,13 +48,9 @@ interface Props {
   initialData?: DynamicDataEntry
   onSave: (entry: DynamicDataEntry) => void
   onCancel: () => void
-  dict?: Partial<Dictionary> // ← make optional
+  dict?: Partial<Dictionary>
 }
 
-/**
- * Built-in English fallbacks so the UI never crashes when
- * translation keys are missing.
- */
 const fallbackDict: Dictionary = {
   editorTitle: "Data Entry",
   editorDescription: "Fill in the fields for this entry.",
@@ -69,15 +65,10 @@ const fallbackDict: Dictionary = {
 }
 
 export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, dict: dictProp }: Props) {
-  // Merge fallback + runtime dictionary
   const dict = { ...fallbackDict, ...(dictProp ?? {}) }
-
   const [formData, setFormData] = useState<Record<string, any>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  /* ------------------------------------------------------------------ */
-  /* Initialisation                                                     */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
     if (initialData) {
       setFormData(initialData.data)
@@ -104,9 +95,6 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
     setFormData(initial)
   }, [initialData, dataType.fields])
 
-  /* ------------------------------------------------------------------ */
-  /* Helpers                                                            */
-  /* ------------------------------------------------------------------ */
   const validateField = (field: Field, value: any): string | undefined => {
     if (field.type === "number" && value !== "" && isNaN(Number(value))) return dict.invalidNumber
 
@@ -171,9 +159,6 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
     })
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Render                                                             */
-  /* ------------------------------------------------------------------ */
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>

@@ -23,7 +23,7 @@ import type { User } from "@supabase/supabase-js" // Import User type
 interface Field {
   name: string
   type: string
-  options?: string[]
+  options?: string[] // Corrected to string[]
 }
 
 interface DataType {
@@ -41,6 +41,18 @@ interface DynamicDataEntry {
   data: Record<string, any>
   created_at: string
   updated_at: string
+}
+
+interface DynamicDataTypePageProps {
+  params: {
+    lang: string
+    organizationId: string
+    dataTypeId: string
+    dataTypeNameSlug: string
+  }
+  searchParams: {
+    editEntryId?: string
+  }
 }
 
 export default function DynamicDataPage({

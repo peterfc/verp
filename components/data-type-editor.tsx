@@ -79,7 +79,7 @@ export function DataTypeEditor({
     if (dataType?.fields) {
       return dataType.fields.map((field) => ({
         ...field,
-        tempOptionsInput: field.type === "Dropdown" ? field.options?.join(", ") || "" : undefined,
+        tempOptionsInput: field.type === "dropdown" ? field.options?.join(", ") || "" : undefined,
       }))
     }
     return []
@@ -93,7 +93,7 @@ export function DataTypeEditor({
       setFieldsArray(
         dataType.fields.map((field) => ({
           ...field,
-          tempOptionsInput: field.type === "Dropdown" ? field.options?.join(", ") || "" : undefined,
+          tempOptionsInput: field.type === "dropdown" ? field.options?.join(", ") || "" : undefined,
         })) || [],
       )
       setOrganizationId(dataType.organization_id)
@@ -121,7 +121,8 @@ export function DataTypeEditor({
       prev.map((field, i) => {
         if (i === index) {
           const newField: Field = { ...field, type: value }
-          if (value === "Dropdown") {
+          if (value === "dropdown") {
+            // Changed to lowercase "dropdown"
             newField.options = field.options || [] // Keep existing parsed options
             newField.tempOptionsInput = field.tempOptionsInput || field.options?.join(", ") || "" // Keep existing raw input or derive from parsed
           } else {
@@ -149,7 +150,8 @@ export function DataTypeEditor({
         validationErrors.push("All field names must be filled.")
       }
 
-      if (field.type === "Dropdown") {
+      if (field.type === "dropdown") {
+        // Changed to lowercase "dropdown"
         const parsedOptions = (field.tempOptionsInput || "")
           .split(",")
           .map((s) => s.trim())
@@ -256,7 +258,8 @@ export function DataTypeEditor({
                         <SelectItem value="boolean">{dict.fieldTypeOptions.boolean}</SelectItem>
                         <SelectItem value="date">{dict.fieldTypeOptions.date}</SelectItem>
                         <SelectItem value="json">{dict.fieldTypeOptions.json}</SelectItem>
-                        <SelectItem value="Dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>
+                        <SelectItem value="dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>{" "}
+                        {/* Changed to lowercase "dropdown" */}
                       </SelectContent>
                     </Select>
                     <Button
@@ -270,7 +273,7 @@ export function DataTypeEditor({
                       <span className="sr-only">{dict.removeFieldButton}</span>
                     </Button>
                   </div>
-                  {field.type === "Dropdown" && (
+                  {field.type === "dropdown" && ( // Changed to lowercase "dropdown"
                     <div className="flex items-center gap-2 w-full pl-4">
                       <Label htmlFor={`options-${index}`} className="sr-only">
                         {dict.dropdownOptionsLabel}
