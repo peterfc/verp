@@ -78,7 +78,9 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
     // Defaults for a *new* entry
     const initial: Record<string, any> = {}
     dataType.fields.forEach((field) => {
-      switch (field.type) {
+      switch (
+        field.type.toLowerCase() // Convert to lowercase for comparison
+      ) {
         case "boolean":
           initial[field.name] = false
           break
@@ -96,9 +98,11 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
   }, [initialData, dataType.fields])
 
   const validateField = (field: Field, value: any): string | undefined => {
-    if (field.type === "number" && value !== "" && isNaN(Number(value))) return dict.invalidNumber
+    const fieldType = field.type.toLowerCase() // Convert to lowercase for comparison
 
-    if (field.type === "json") {
+    if (fieldType === "number" && value !== "" && isNaN(Number(value))) return dict.invalidNumber
+
+    if (fieldType === "json") {
       try {
         JSON.parse(value)
       } catch {
@@ -106,7 +110,7 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
       }
     }
 
-    if (field.type === "date" && value && isNaN(new Date(value).getTime())) return dict.invalidDate
+    if (fieldType === "date" && value && isNaN(new Date(value).getTime())) return dict.invalidDate
 
     return undefined
   }
@@ -139,7 +143,9 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
     const cleaned: Record<string, any> = {}
     dataType.fields.forEach((f) => {
       const v = formData[f.name]
-      switch (f.type) {
+      const fieldType = f.type.toLowerCase() // Convert to lowercase for comparison
+
+      switch (fieldType) {
         case "number":
           cleaned[f.name] = v === "" ? null : Number(v)
           break
@@ -159,6 +165,95 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
     })
   }
 
+  const renderField = (field: Field) => {
+    const fieldType = field.type.toLowerCase() // Convert to lowercase for comparison
+
+    switch (fieldType) {
+      case "string":
+        return (
+          <Input
+            id={field.name}
+            value={formData[field.name] ?? ""}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+          />
+        )
+
+      case "number":
+        return (
+          <Input
+            id={field.name}
+            type="number"
+            value={formData[field.name] ?? ""}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+          />
+        )
+
+      case "boolean":
+        return (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id={field.name}
+              checked={Boolean(formData[field.name])}
+              onCheckedChange={(c) => handleChange(field.name, c)}
+            />
+            <label htmlFor={field.name} className="text-sm font-medium leading-none">
+              {field.name}
+            </label>
+          </div>
+        )
+
+      case "date":
+        return (
+          <Input
+            id={field.name}
+            type="date"
+            value={formData[field.name] ?? ""}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+          />
+        )
+
+      case "json":
+        return (
+          <Textarea
+            id={field.name}
+            rows={5}
+            value={formData[field.name] ?? "{}"}
+            onChange={(e) => handleChange(field.name, e.target.value)}
+          />
+        )
+
+      case "dropdown":
+        return (
+          <Select value={formData[field.name] ?? ""} onValueChange={(v) => handleChange(field.name, v)}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${field.name}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options?.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )
+
+      default:
+        return (
+          <div className="p-2 bg-yellow-100 border border-yellow-300 rounded">
+            <strong>Unknown field type:</strong> {field.type}
+            <br />
+            <Input
+              id={field.name}
+              value={formData[field.name] ?? ""}
+              onChange={(e) => handleChange(field.name, e.target.value)}
+              placeholder={`Enter ${field.name}`}
+            />
+          </div>
+        )
+    }
+  }
+
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
@@ -168,79 +263,10 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
 
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
-          {dataType.fields.map((field) => (
+          {dataType.fields.map((field, index) => (
             <div key={field.name} className="grid gap-2">
               <Label htmlFor={field.name}>{field.name}</Label>
-
-              {field.type === "string" && (
-                <Input
-                  id={field.name}
-                  value={formData[field.name] ?? ""}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                />
-              )}
-
-              {field.type === "number" && (
-                <Input
-                  id={field.name}
-                  type="number"
-                  value={formData[field.name] ?? ""}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                />
-              )}
-
-              {field.type === "boolean" && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={field.name}
-                    checked={Boolean(formData[field.name])}
-                    onCheckedChange={(c) => handleChange(field.name, c)}
-                  />
-                  <label htmlFor={field.name} className="text-sm font-medium leading-none">
-                    {field.name}
-                  </label>
-                </div>
-              )}
-
-              {field.type === "date" && (
-                <Input
-                  id={field.name}
-                  type="date"
-                  value={formData[field.name] ?? ""}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                />
-              )}
-
-              {field.type === "json" && (
-                <Textarea
-                  id={field.name}
-                  rows={5}
-                  value={formData[field.name] ?? "{}"}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                />
-              )}
-
-              {field.type === "dropdown" && (
-                <>
-                  {/* Debug info for dropdown */}
-                  <div className="text-xs text-gray-500 mb-2">
-                    Debug: Field options = {JSON.stringify(field.options)}
-                  </div>
-                  <Select value={formData[field.name] ?? ""} onValueChange={(v) => handleChange(field.name, v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={`Select ${field.name}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {field.options?.map((opt) => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
-
+              {renderField(field)}
               {errors[field.name] && <p className="text-red-500 text-sm">{errors[field.name]}</p>}
             </div>
           ))}
