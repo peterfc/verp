@@ -1,15 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import Negotiator from "negotiator" // [^1][^2]
-import { match } from "@formatjs/intl-localematcher" // [^1][^2]
+import Negotiator from "negotiator"
+import { match } from "@formatjs/intl-localematcher"
 
-const locales = ["en", "es"] // Supported locales
-const defaultLocale = "en" // Default locale [^1][^2]
+const locales = ["en", "es"]
+const defaultLocale = "en"
 
 function getLocale(request: NextRequest) {
   const acceptLanguageHeader = request.headers.get("accept-language")
   const languages = new Negotiator({ headers: { "accept-language": acceptLanguageHeader || "" } }).languages()
-  return match(languages, locales, defaultLocale) // [^1][^2]
+  return match(languages, locales, defaultLocale)
 }
 
 export async function middleware(request: NextRequest) {
@@ -69,9 +69,10 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  const protectedPaths = ["/", "/profiles", "/customers"] // Paths that require authentication
+  // Updated protectedPaths to include organizations and data-types
+  const protectedPaths = ["/", "/profiles", "/organizations", "/data-types"]
 
-  // Handle i18n routing [^1][^2]
+  // Handle i18n routing
   const { pathname } = request.nextUrl
   const pathnameHasLocale = locales.some((locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`)
 
@@ -88,7 +89,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Handle authentication for protected paths
-  if (!session && protectedPaths.includes(request.nextUrl.pathname.replace(`/${getLocale(request)}`, ""))) {
+  const currentPathWithoutLocale = pathname.replace(`/${getLocale(request)}`, "")
+  if (!session && protectedPaths.includes(currentPathWithoutLocale)) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/login"
     redirectUrl.searchParams.set(`redirectedFrom`, request.nextUrl.pathname)
@@ -97,8 +99,24 @@ export async function middleware(request: NextRequest) {
 
   if (session && request.nextUrl.pathname === "/login") {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = `/${getLocale(request)}/` // Redirect to locale-prefixed dashboard
+    redirectUrl.pathname = `/${getLocale(request)}/`
     return NextResponse.redirect(redirectUrl)
+  }
+
+  // Role-based protection for /data-types
+  if (session && currentPathWithoutLocale === "/data-types") {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("type")
+      .eq("id", session.user.id)
+      .single()
+
+    if (profileError || !profile || (profile.type !== "Administrator" && profile.type !== "Manager")) {
+      console.warn(`Unauthorized access attempt to /data-types by user type: ${profile?.type || "unknown"}`)
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = `/${getLocale(request)}/` // Redirect to dashboard
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   return response

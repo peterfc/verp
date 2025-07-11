@@ -16,13 +16,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-// Removed: import { getDictionary } from "../dictionaries"
+import { createBrowserClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 interface Profile {
   id: string
   name: string
   email: string
-  type: string // Add type to Profile interface
+  type: string
 }
 
 export default function ProfilesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
@@ -34,7 +35,48 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const [dict, setDict] = useState<any>(null) // State to hold dictionary
+  const [dict, setDict] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isManager, setIsManager] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!supabase) return
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+      if (userError || !user) {
+        console.error("Error fetching user:", userError?.message)
+        setCurrentUser(null)
+        setIsAdmin(false)
+        setIsManager(false)
+        return
+      }
+
+      setCurrentUser(user)
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("type")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError) {
+        console.error("Error fetching profile type:", profileError.message)
+        setIsAdmin(false)
+        setIsManager(false)
+      } else if (profile) {
+        setIsAdmin(profile.type === "Administrator")
+        setIsManager(profile.type === "Manager")
+      }
+    }
+
+    fetchUserRole()
+  }, [supabase])
 
   useEffect(() => {
     const loadDictionary = async () => {
@@ -59,14 +101,14 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
             profileDeleted: "Profile deleted successfully.",
             failedToSaveProfile: "Failed to save profile.",
             failedToDeleteProfile: "Failed to delete profile.",
-            type: "Type", // Add type translation
+            type: "Type",
           },
           profileForm: {
             editTitle: "Edit Profile",
             addTitle: "Add Profile",
             editDescription: "Make changes to the profile here.",
             addDescription: "Add a new profile to your list.",
-            typeLabel: "Type", // Add type label
+            typeLabel: "Type",
             typeOptions: {
               administrator: "Administrator",
               manager: "Manager",
@@ -98,7 +140,7 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
   }, [lang])
 
   const fetchProfiles = useCallback(async () => {
-    if (!dict) return // Wait for dictionary to load
+    if (!dict) return
     setLoading(true)
     setError(null)
     try {
@@ -132,18 +174,19 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
     try {
       let response: Response
       if (profile.id) {
+        // Existing profile: PUT request
         response = await fetch(`/api/profiles/${profile.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: profile.name, email: profile.email, type: profile.type }), // Pass type
+          body: JSON.stringify({ name: profile.name, email: profile.email, type: profile.type }),
         })
       } else {
-        toast({
-          title: dict?.profilesPage.actionNotAllowed || "Action Not Allowed",
-          description: dict?.profilesPage.newProfilesSignup || "New profiles are created via the signup process.",
-          variant: "destructive",
+        // New profile: POST request (only allowed for Admins by RLS)
+        response = await fetch("/api/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: profile.name, email: profile.email, type: profile.type }),
         })
-        return
       }
 
       if (!response.ok) {
@@ -207,13 +250,23 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
     setIsDeleteDialogOpen(true)
   }
 
-  if (!dict) return null // Don't render until dictionary is loaded
+  if (!dict) return null
 
   return (
     <div className="grid gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold">{dict.profilesPage.title}</CardTitle>
+          {isAdmin && (
+            <Button
+              onClick={() => {
+                setEditingProfile(undefined)
+                setIsFormOpen(true)
+              }}
+            >
+              {dict.common.add.replace("{itemType}", dict.profilesPage.title.toLowerCase())}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -228,7 +281,7 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
                 <TableRow>
                   <TableHead>{dict.common.name}</TableHead>
                   <TableHead>{dict.common.email}</TableHead>
-                  <TableHead>{dict.profilesPage.type}</TableHead> {/* New: Type column header */}
+                  <TableHead>{dict.profilesPage.type}</TableHead>
                   <TableHead className="text-right">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -249,24 +302,30 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
                         <TableCell key="email">{profile.email}</TableCell>,
                         <TableCell key="type">{profile.type}</TableCell>,
                         <TableCell key="actions" className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">{dict.common.actions}</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditForm(profile)}>
-                                {dict.common.edit}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openDeleteConfirm(profile)}>
-                                {dict.common.delete}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(isAdmin || isManager || (currentUser && profile.id === currentUser.id)) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">{dict.common.actions}</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openEditForm(profile)}>
+                                  {dict.common.edit}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {(isAdmin ||
+                                  (isManager && currentUser && profile.id !== currentUser.id) ||
+                                  (!isAdmin && !isManager && currentUser && profile.id === currentUser.id)) && (
+                                  <DropdownMenuItem onClick={() => openDeleteConfirm(profile)}>
+                                    {dict.common.delete}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </TableCell>,
                       ]}
                     </TableRow>
@@ -290,11 +349,13 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
           addDescription: dict.profileForm.addDescription,
           nameLabel: dict.common.name,
           emailLabel: dict.common.email,
-          typeLabel: dict.profileForm.typeLabel, // Pass type label
-          typeOptions: dict.profileForm.typeOptions, // Pass type options
+          typeLabel: dict.profileForm.typeLabel,
+          typeOptions: dict.profileForm.typeOptions,
           saveChangesButton: dict.common.saveChanges,
           addProfileButton: dict.common.add.replace("{itemType}", dict.profilesPage.title.toLowerCase()),
         }}
+        isAdmin={isAdmin}
+        isManager={isManager}
       />
 
       {profileToDelete && (

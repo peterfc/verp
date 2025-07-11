@@ -6,62 +6,58 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Import Select components
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-interface ProfileFormProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  profile?: { id: string; name: string; email: string; type: string } // Add type to profile
-  onSave: (profile: { id?: string; name: string; email: string; type: string }) => void // Add type to onSave
+interface Profile {
+  id: string
+  name: string
+  email: string
+  type: string
+}
+
+interface ProfileEditorProps {
+  profile?: Profile // Optional, for editing existing profiles
+  onSave: (profile: { id?: string; name: string; email: string; type: string }) => void
+  onCancel: () => void
   dict: {
-    editTitle: string
-    addTitle: string
-    editDescription: string
-    addDescription: string
+    editorTitle: string
+    editorDescription: string
     nameLabel: string
     emailLabel: string
-    typeLabel: string // New: type label
+    typeLabel: string
     typeOptions: {
       administrator: string
       manager: string
       user: string
-    } // New: type options
-    saveChangesButton: string
-    addProfileButton: string
+    }
+    saveButton: string
+    cancelButton: string
   }
-  isAdmin: boolean // New prop: isAdmin
-  isManager: boolean // New prop: isManager
+  isAdmin: boolean
+  isManager: boolean
 }
 
-export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdmin, isManager }: ProfileFormProps) {
+export function ProfileEditor({ profile, onSave, onCancel, dict, isAdmin, isManager }: ProfileEditorProps) {
   const [name, setName] = useState(profile?.name || "")
   const [email, setEmail] = useState(profile?.email || "")
-  const [type, setType] = useState(profile?.type || "User") // New: state for type, default to 'User'
+  const [type, setType] = useState(profile?.type || "User")
 
   useEffect(() => {
     if (profile) {
       setName(profile.name)
       setEmail(profile.email)
-      setType(profile.type) // Set type from profile
+      setType(profile.type)
     } else {
       setName("")
       setEmail("")
-      setType("User") // Reset type to default for new profile
+      setType("User")
     }
-  }, [profile, isOpen])
+  }, [profile])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({ id: profile?.id, name, email, type }) // Pass type to onSave
-    onOpenChange(false)
+    onSave({ id: profile?.id, name, email, type })
   }
 
   // Determine if the type dropdown should be disabled
@@ -71,12 +67,12 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdm
   const isTypeSelectDisabled = !isAdmin && (!isManager || (profile && profile.type === "Administrator"))
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{profile ? dict.editTitle : dict.addTitle}</DialogTitle>
-          <DialogDescription>{profile ? dict.editDescription : dict.addDescription}</DialogDescription>
-        </DialogHeader>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>{dict.editorTitle}</CardTitle>
+        <CardDescription>{dict.editorDescription}</CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -113,11 +109,16 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdm
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
-            <Button type="submit">{profile ? dict.saveChangesButton : dict.addProfileButton}</Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          {dict.cancelButton}
+        </Button>
+        <Button type="submit" onClick={handleSubmit}>
+          {dict.saveButton}
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

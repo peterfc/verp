@@ -28,17 +28,22 @@
     "navigation": "Navigation",
     "dashboard": "Dashboard",
     "profiles": "Profiles",
+    "myProfile": "My Profile",
     "organizations": "Organizations",
+    "dataTypes": "Data Types",
+    "settings": "Settings",
     "logout": "Logout",
     "logoutFailed": "Logout Failed",
     "loggedOut": "Logged Out",
-    "loggedOutDescription": "You have been successfully logged out."
+    "loggedOutDescription": "You have been successfully logged out.",
+    "noDataTypesFound": "No data types found for your organizations."
   },
   "homePage": {
     "welcomeTitle": "Welcome to CRM App",
     "welcomeDescription": "Navigate to manage your profiles and organizations.",
     "manageProfiles": "Manage Profiles",
-    "manageOrganizations": "Manage Organizations"
+    "manageOrganizations": "Manage Organizations",
+    "manageDataTypes": "Manage Data Types"
   },
   "profilesPage": {
     "title": "Profiles",
@@ -105,5 +110,77 @@
     "signUpFailed": "Sign Up Failed",
     "signUpSuccessful": "Sign Up Successful",
     "confirmEmail": "Please check your email to confirm your account (if email confirmation is enabled)."
+  },
+  "dataTypesPage": {
+    "title": "Data Types",
+    "loadingDataTypes": "Loading data types...",
+    "failedToFetchDataTypes": "Failed to fetch data types.",
+    "dataTypeSaved": "Data Type saved successfully.",
+    "dataTypeDeleted": "Data Type deleted successfully.",
+    "failedToSaveDataType": "Failed to save data type.",
+    "failedToDeleteDataType": "Failed to delete data type.",
+    "fields": "Fields",
+    "organization": "Organization"
+  },
+  "dataTypeForm": {
+    "editTitle": "Edit Data Type",
+    "addTitle": "Add Data Type",
+    "editDescription": "Make changes to the data type here.",
+    "addDescription": "Add a new data type to your list.",
+    "nameLabel": "Name",
+    "fieldsLabel": "Fields (JSON)",
+    "organizationLabel": "Organization",
+    "saveChangesButton": "Save changes",
+    "addDataTypeButton": "Add Data Type",
+    "errorFetchingOrganizations": "Error fetching organizations",
+    "failedToLoadOrganizations": "Failed to load organizations for selection.",
+    "invalidJson": "Invalid JSON"
+  },
+  "dataTypeEditor": {
+    "editorTitle": "Data Type Editor",
+    "editorDescription": "Create or edit your data type schema.",
+    "nameLabel": "Name",
+    "fieldsLabel": "Fields",
+    "organizationLabel": "Organization",
+    "saveButton": "Save Data Type",
+    "cancelButton": "Cancel",
+    "invalidJson": "Invalid JSON",
+    "noOrganizationSelected": "Please select an organization.",
+    "noOrganizationsFound": "No organizations found.",
+    "addFieldButton": "Add Field",
+    "removeFieldButton": "Remove Field",
+    "fieldTypeOptions": {
+      "string": "String",
+      "number": "Number",
+      "boolean": "Boolean",
+      "date": "Date",
+      "json": "JSON",
+      "dropdown": "Dropdown"
+    },
+    "dropdownOptionsLabel": "Dropdown Options",
+    "dropdownOptionsPlaceholder": "e.g., Option 1, Option 2, Option 3"
+  },
+  "dynamicDataPage": {
+    "title": "Data Entries for {dataTypeName}",
+    "loadingEntries": "Loading data entries...",
+    "failedToFetchEntries": "Failed to fetch data entries.",
+    "entrySaved": "Data entry saved successfully.",
+    "entryDeleted": "Data entry deleted successfully.",
+    "failedToSaveEntry": "Failed to save data entry.",
+    "failedToDeleteEntry": "Failed to delete data type.",
+    "addEntry": "Add New Entry",
+    "noEntriesFound": "No entries found for this data type."
+  },
+  "dynamicDataEntryForm": {
+    "editorTitle": "Edit Data Entry",
+    "editorDescription": "Enter data for this type.",
+    "saveButton": "Save Entry",
+    "cancelButton": "Cancel",
+    "invalidInput": "Invalid Input",
+    "requiredField": "This field is required.",
+    "invalidNumber": "Please enter a valid number.",
+    "invalidJson": "Invalid JSON format.",
+    "invalidDate": "Invalid date format.",
+    "fieldLabel": "Field"
   }
 }

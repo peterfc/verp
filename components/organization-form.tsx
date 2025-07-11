@@ -24,19 +24,17 @@ interface Profile {
 }
 
 interface OrganizationFormProps {
-  // Renamed interface
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  organization?: { id: string; name: string; contact: string; industry: string; profiles?: Profile[] } // Renamed prop
+  organization?: { id: string; name: string; contact: string; industry: string; profiles?: Profile[] }
   onSave: (organization: {
     id?: string
     name: string
     contact: string
     industry: string
     profile_ids: string[]
-  }) => void // Renamed prop
+  }) => void
   dict: {
-    // Add dictionary prop
     editTitle: string
     addTitle: string
     editDescription: string
@@ -46,23 +44,39 @@ interface OrganizationFormProps {
     industryLabel: string
     profilesLabel: string
     saveChangesButton: string
-    addOrganizationButton: string // Renamed key
+    addOrganizationButton: string
     errorFetchingProfiles: string
     failedToLoadProfiles: string
     selectProfilesPlaceholder: string
     searchProfilesPlaceholder: string
     noProfilesFound: string
   }
+  isAdmin: boolean // New prop
+  isManager: boolean // New prop
 }
 
-export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, dict }: OrganizationFormProps) {
-  // Renamed component and props
-  const [name, setName] = useState(organization?.name || "") // Renamed prop
-  const [contact, setContact] = useState(organization?.contact || "") // Renamed prop
-  const [industry, setIndustry] = useState(organization?.industry || "") // Renamed prop
+export function OrganizationForm({
+  isOpen,
+  onOpenChange,
+  organization,
+  onSave,
+  dict,
+  isAdmin,
+  isManager,
+}: OrganizationFormProps) {
+  const [name, setName] = useState(organization?.name || "")
+  const [contact, setContact] = useState(organization?.contact || "")
+  const [industry, setIndustry] = useState(organization?.industry || "")
   const [allProfiles, setAllProfiles] = useState<Profile[]>([])
   const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([])
   const { toast } = useToast()
+
+  // Determine if the form should be disabled
+  // It's enabled if:
+  // 1. Current user is an Admin
+  // 2. Current user is a Manager AND an existing organization is being edited
+  //    (Managers can only edit existing associated organizations, not create new ones)
+  const isFormDisabled = !isAdmin && (!isManager || !organization)
 
   useEffect(() => {
     if (isOpen) {
@@ -89,22 +103,32 @@ export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, d
 
   useEffect(() => {
     if (organization) {
-      // Renamed prop
-      setName(organization.name) // Renamed prop
-      setContact(organization.contact) // Renamed prop
-      setIndustry(organization.industry) // Renamed prop
-      setSelectedProfileIds(organization.profiles?.map((p) => p.id) || []) // Renamed prop
+      setName(organization.name)
+      setContact(organization.contact)
+      setIndustry(organization.industry)
+      setSelectedProfileIds(
+        (organization.profiles ?? []).filter((p): p is Profile => Boolean(p && p.id)).map((p) => p.id),
+      )
     } else {
       setName("")
       setContact("")
       setIndustry("")
       setSelectedProfileIds([])
     }
-  }, [organization, isOpen]) // Renamed prop
+  }, [organization, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({ id: organization?.id, name, contact, industry, profile_ids: selectedProfileIds }) // Renamed prop
+    if (isFormDisabled) {
+      // Prevent submission if disabled
+      toast({
+        title: dict.addTitle,
+        description: "You do not have permission to edit organizations.",
+        variant: "destructive",
+      })
+      return
+    }
+    onSave({ id: organization?.id, name, contact, industry, profile_ids: selectedProfileIds })
     onOpenChange(false)
   }
 
@@ -112,16 +136,22 @@ export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, d
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{organization ? dict.editTitle : dict.addTitle}</DialogTitle> {/* Renamed prop */}
-          <DialogDescription>{organization ? dict.editDescription : dict.addDescription}</DialogDescription>{" "}
-          {/* Renamed prop */}
+          <DialogTitle>{organization ? dict.editTitle : dict.addTitle}</DialogTitle>
+          <DialogDescription>{organization ? dict.editDescription : dict.addDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               {dict.nameLabel}
             </Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="col-span-3"
+              required
+              disabled={isFormDisabled}
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="contact" className="text-right">
@@ -134,6 +164,7 @@ export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, d
               onChange={(e) => setContact(e.target.value)}
               className="col-span-3"
               required
+              disabled={isFormDisabled}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -146,6 +177,7 @@ export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, d
               onChange={(e) => setIndustry(e.target.value)}
               className="col-span-3"
               required
+              disabled={isFormDisabled}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -162,12 +194,15 @@ export function OrganizationForm({ isOpen, onOpenChange, organization, onSave, d
                   searchProfilesPlaceholder: dict.searchProfilesPlaceholder,
                   noProfilesFound: dict.noProfilesFound,
                 }}
+                // Disable MultiSelectProfiles if the form is disabled
+                disabled={isFormDisabled}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">{organization ? dict.saveChangesButton : dict.addOrganizationButton}</Button>{" "}
-            {/* Renamed prop */}
+            <Button type="submit" disabled={isFormDisabled}>
+              {organization ? dict.saveChangesButton : dict.addOrganizationButton}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

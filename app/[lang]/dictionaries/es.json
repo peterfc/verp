@@ -28,17 +28,22 @@
     "navigation": "Navegación",
     "dashboard": "Panel de control",
     "profiles": "Perfiles",
+    "myProfile": "Mi Perfil",
     "organizations": "Organizaciones",
+    "dataTypes": "Tipos de Datos",
     "logout": "Cerrar sesión",
     "logoutFailed": "Error al cerrar sesión",
     "loggedOut": "Sesión cerrada",
-    "loggedOutDescription": "Has cerrado sesión correctamente."
+    "loggedOutDescription": "Has cerrado sesión correctamente.",
+    "settings": "Configuración",
+    "noDataTypesFound": "No se encontraron tipos de datos para tus organizaciones."
   },
   "homePage": {
     "welcomeTitle": "Bienvenido a la aplicación CRM",
     "welcomeDescription": "Navega para gestionar tus perfiles y organizaciones.",
     "manageProfiles": "Gestionar perfiles",
-    "manageOrganizations": "Gestionar organizaciones"
+    "manageOrganizations": "Gestionar organizaciones",
+    "manageDataTypes": "Gestionar Tipos de Datos"
   },
   "profilesPage": {
     "title": "Perfiles",
@@ -105,5 +110,77 @@
     "signUpFailed": "Error al registrarse",
     "signUpSuccessful": "Registro exitoso",
     "confirmEmail": "Por favor, revisa tu correo electrónico para confirmar tu cuenta (si la confirmación por correo electrónico está habilitada)."
+  },
+  "dataTypesPage": {
+    "title": "Tipos de Datos",
+    "loadingDataTypes": "Cargando tipos de datos...",
+    "failedToFetchDataTypes": "Error al cargar tipos de datos.",
+    "dataTypeSaved": "Tipo de dato guardado correctamente.",
+    "dataTypeDeleted": "Tipo de dato eliminado correctamente.",
+    "failedToSaveDataType": "Error al guardar tipo de dato.",
+    "failedToDeleteDataType": "Error al eliminar tipo de dato.",
+    "fields": "Campos",
+    "organization": "Organización"
+  },
+  "dataTypeForm": {
+    "editTitle": "Editar Tipo de Dato",
+    "addTitle": "Añadir Tipo de Dato",
+    "editDescription": "Realiza cambios en el tipo de dato aquí.",
+    "addDescription": "Añade un nuevo tipo de dato a tu lista.",
+    "nameLabel": "Nombre",
+    "fieldsLabel": "Campos (JSON)",
+    "organizationLabel": "Organización",
+    "saveChangesButton": "Guardar cambios",
+    "addDataTypeButton": "Añadir Tipo de Dato",
+    "errorFetchingOrganizations": "Error al cargar organizaciones",
+    "failedToLoadOrganizations": "No se pudieron cargar las organizaciones para la selección.",
+    "invalidJson": "JSON inválido"
+  },
+  "dataTypeEditor": {
+    "editorTitle": "Editor de Tipo de Datos",
+    "editorDescription": "Crea o edita el esquema de tu tipo de datos.",
+    "nameLabel": "Nombre",
+    "fieldsLabel": "Campos",
+    "organizationLabel": "Organización",
+    "saveButton": "Guardar Tipo de Dato",
+    "cancelButton": "Cancelar",
+    "invalidJson": "JSON inválido",
+    "noOrganizationSelected": "Por favor, selecciona una organización.",
+    "noOrganizationsFound": "No se encontraron organizaciones.",
+    "addFieldButton": "Añadir Campo",
+    "removeFieldButton": "Eliminar Campo",
+    "fieldTypeOptions": {
+      "string": "Cadena",
+      "number": "Número",
+      "boolean": "Booleano",
+      "date": "Fecha",
+      "json": "JSON",
+      "dropdown": "Desplegable"
+    },
+    "dropdownOptionsLabel": "Opciones de Desplegable",
+    "dropdownOptionsPlaceholder": "ej., Opción 1, Opción 2, Opción 3"
+  },
+  "dynamicDataPage": {
+    "title": "Entradas de Datos para {dataTypeName}",
+    "loadingEntries": "Cargando entradas de datos...",
+    "failedToFetchEntries": "Error al cargar entradas de datos.",
+    "entrySaved": "Entrada de datos guardada correctamente.",
+    "entryDeleted": "Entrada de datos eliminada correctamente.",
+    "failedToSaveEntry": "Error al guardar entrada de datos.",
+    "failedToDeleteEntry": "Error al eliminar entrada de datos.",
+    "addEntry": "Añadir Nueva Entrada",
+    "noEntriesFound": "No se encontraron entradas para este tipo de datos."
+  },
+  "dynamicDataEntryForm": {
+    "editorTitle": "Editar Entrada de Datos",
+    "editorDescription": "Introduce datos para este tipo.",
+    "saveButton": "Guardar Entrada",
+    "cancelButton": "Cancelar",
+    "invalidInput": "Entrada inválida",
+    "requiredField": "Este campo es obligatorio.",
+    "invalidNumber": "Por favor, introduce un número válido.",
+    "invalidJson": "Formato JSON inválido.",
+    "invalidDate": "Formato de fecha inválido.",
+    "fieldLabel": "Campo"
   }
 }
