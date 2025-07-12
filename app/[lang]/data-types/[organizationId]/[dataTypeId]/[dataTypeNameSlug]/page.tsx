@@ -365,7 +365,7 @@ export default function DynamicDataPage({
                   ))}
                   <TableHead>Created At</TableHead>
                   <TableHead>Updated At</TableHead>
-                  {canManageData && <TableHead className="text-right">{dict.common.actions}</TableHead>}
+                  {canAddData && <TableHead className="text-right">{dict.common.actions}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -382,7 +382,7 @@ export default function DynamicDataPage({
                     ))}
                     <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
                     <TableCell>{new Date(entry.updated_at).toLocaleString()}</TableCell>
-                    {canManageData && (
+                    {canAddData && (
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
