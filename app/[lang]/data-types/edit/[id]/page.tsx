@@ -17,14 +17,26 @@ interface Field {
   options?: string[]
 }
 
-interface DataTypeFormProps {
-  lang: string
+interface DataType {
+  id: string
+  name: string
+  fields: Field[]
+  organization_id: string
+  organization?: { name: string }
 }
 
-export function DataTypeForm({ lang }: DataTypeFormProps) {
+interface EditDataTypePageProps {
+  params: {
+    lang: string
+    id: string
+  }
+}
+
+export default function EditDataTypePage({ params: { lang, id } }: EditDataTypePageProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
+  const [dataType, setDataType] = useState<DataType | null>(null)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -70,12 +82,12 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
         // Fallback dictionary if fetch fails
         setDict({
           dataTypeEditor: {
-            editorTitle: "Create Data Type",
-            editorDescription: "Define a new data type for your organization.",
+            editorTitle: "Edit Data Type",
+            editorDescription: "Modify the data type definition.",
             nameLabel: "Name",
             fieldsLabel: "Fields",
             organizationLabel: "Organization",
-            saveButton: "Create Data Type",
+            saveButton: "Save Changes",
             cancelButton: "Cancel",
             invalidJson: "Invalid configuration",
             noOrganizationSelected: "Please select an organization",
@@ -106,10 +118,17 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
   }, [lang, toast])
 
   useEffect(() => {
-    const fetchOrganizations = async () => {
+    const fetchData = async () => {
       if (!dict) return
       setLoading(true)
       try {
+        // Fetch the data type
+        const dataTypeResponse = await fetch(`/api/data-types/${id}`)
+        if (!dataTypeResponse.ok) throw new Error("Failed to fetch data type")
+        const dataTypeData: DataType = await dataTypeResponse.json()
+        setDataType(dataTypeData)
+
+        // Fetch organizations
         const orgsResponse = await fetch("/api/organizations")
         if (!orgsResponse.ok) throw new Error("Failed to fetch organizations")
         const orgsData: Organization[] = await orgsResponse.json()
@@ -118,33 +137,40 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
         console.error(err)
         toast({
           title: dict?.common?.error || "Error",
-          description: err.message || "Failed to load organizations.",
+          description: err.message || "Failed to load data.",
           variant: "destructive",
         })
+        // Redirect back to data types list if fetch fails
+        router.push(`/${lang}/data-types`)
       } finally {
         setLoading(false)
       }
     }
 
     if (dict) {
-      fetchOrganizations()
+      fetchData()
     }
-  }, [dict, toast])
+  }, [dict, id, lang, router, toast])
 
-  const handleSave = async (newDataType: {
+  const handleSave = async (updatedDataType: {
+    id?: string
     name: string
     fields: Field[]
     organization_id: string
   }) => {
     try {
-      const response = await fetch("/api/data-types", {
-        method: "POST",
+      const response = await fetch(`/api/data-types/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newDataType),
+        body: JSON.stringify({
+          name: updatedDataType.name,
+          fields: updatedDataType.fields,
+          organization_id: updatedDataType.organization_id,
+        }),
       })
 
       if (!response.ok) {
-        let message = "Failed to create data type."
+        let message = "Failed to update data type."
         try {
           const errorData = await response.json()
           if (errorData?.error) {
@@ -158,7 +184,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
 
       toast({
         title: dict?.common?.success || "Success",
-        description: "Data type created successfully.",
+        description: "Data type updated successfully.",
       })
 
       // Redirect back to data types list
@@ -166,7 +192,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
     } catch (err: any) {
       toast({
         title: dict?.common?.error || "Error",
-        description: err.message || "Failed to create data type.",
+        description: err.message || "Failed to update data type.",
         variant: "destructive",
       })
       console.error(err)
@@ -177,7 +203,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
     router.push(`/${lang}/data-types`)
   }
 
-  if (loading || !dict) {
+  if (loading || !dict || !dataType) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
         <p>{dict?.common?.loading || "Loading..."}</p>
@@ -188,6 +214,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
   return (
     <div className="container mx-auto py-6">
       <DataTypeEditor
+        dataType={dataType}
         organizations={organizations}
         onSave={handleSave}
         onCancel={handleCancel}

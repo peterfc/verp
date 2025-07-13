@@ -155,7 +155,8 @@
       "boolean": "Booleano",
       "date": "Fecha",
       "json": "JSON",
-      "dropdown": "Desplegable"
+      "dropdown": "Desplegable",
+      "file": "Archivo"
     },
     "dropdownOptionsLabel": "Opciones de Desplegable",
     "dropdownOptionsPlaceholder": "ej., Opción 1, Opción 2, Opción 3"

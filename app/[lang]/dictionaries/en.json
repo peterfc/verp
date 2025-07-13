@@ -155,7 +155,8 @@
       "boolean": "Boolean",
       "date": "Date",
       "json": "JSON",
-      "dropdown": "Dropdown"
+      "dropdown": "Dropdown",
+      "file": "File"
     },
     "dropdownOptionsLabel": "Dropdown Options",
     "dropdownOptionsPlaceholder": "e.g., Option 1, Option 2, Option 3"

@@ -308,7 +308,7 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
                                 <DropdownMenuItem asChild>
                                   {" "}
                                   {/* Use asChild to make the Link a menu item */}
-                                  <Link href={`/${lang}/data-types/${dataType.id}/edit`}>{dict.common.edit}</Link>
+                                  <Link href={`/${lang}/data-types/edit/${dataType.id}`}>{dict.common.edit}</Link>
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />

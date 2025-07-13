@@ -1,42 +1,55 @@
-import { createServerClient as createClient } from "@supabase/ssr"
-import type { cookies } from "next/headers"
+/**
+ * Server-side Supabase helpers
+ *
+ * All server code (Route Handlers, Server Components, Server Actions, middleware)
+ * should import one of the exports below instead of creating a new Supabase
+ * client each time.
+ *
+ *  • createServerClient(cookieStore?)
+ *  • createClient            – alias of createServerClient
+ *  • createSupabaseClient    – alias of createServerClient
+ *
+ * Why the cookie store?
+ * Supabase authentication is cookie-based.  By wiring the cookie helpers
+ * into the Supabase client we:
+ *   1. forward the user’s auth cookies on every request
+ *   2. automatically persist any “set-cookie” headers Supabase returns
+ *
+ * This pattern mirrors the one recommended by the @supabase/ssr package.
+ */
 
-export const createServerClient = (cookieStore: ReturnType<typeof cookies>) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+import { cookies as defaultCookies } from "next/headers"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { createServerClient as createSSRClient } from "@supabase/ssr"
 
-  if (!supabaseUrl) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable in server client.")
-  }
-  if (!supabaseAnonKey) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable in server client.")
-  }
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
+/**
+ * Returns a fully configured server-side Supabase client.
+ *
+ * @param cookieStore  – `cookies()` from next/headers (optional)
+ */
+export function createServerClient(cookieStore: ReturnType<typeof defaultCookies> = defaultCookies()): SupabaseClient {
+  const supabase = createSSRClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
-      async get(name: string) {
-        // Mark as async
-        return (await cookieStore.get(name))?.value // Await the get call
+      get(name: string) {
+        return cookieStore.get(name)?.value
       },
-      async set(name: string, value: string, options: any) {
-        // Mark as async
-        try {
-          await cookieStore.set({ name, value, ...options }) // Await the set call
-        } catch (error) {
-          // The `cookies().set()` method can only be called from a Server Component or Server Action.
-          // This error is typically ignored if you're using Next.js with Supabase.
-          // For more details: https://supabase.com/docs/guides/auth/server-side/nextjs
-        }
+      set(name: string, value: string, options: any) {
+        cookieStore.set({ name, value, ...options })
       },
-      async remove(name: string, options: any) {
-        // Mark as async
-        try {
-          await cookieStore.set({ name, value: "", ...options }) // Await the set call (for removal)
-        } catch (error) {
-          // The `cookies().set()` method can only be called from a Server Component or Server Action.
-          // This error is typically ignored if you're using Next.js with Supabase.
-        }
+      remove(name: string, options: any) {
+        cookieStore.set({ name, value: "", ...options })
       },
     },
   })
+
+  return supabase
 }
+
+/* ────────────────────────────────────────────────────────────────────
+ * Aliases – so other files can import whichever name they expect
+ * ------------------------------------------------------------------*/
+
+export const createClient = createServerClient // legacy alias
+export const createSupabaseClient = createServerClient // stylistic alias
+
+export default createServerClient

@@ -7,7 +7,7 @@ import { DeleteDialog } from "@/components/delete-dialog" // For deleting entrie
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal, Plus } from "lucide-react"
+import { MoreHorizontal, Plus, ExternalLink } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +55,23 @@ interface DynamicDataTypePageProps {
   }
 }
 
+// Simple pluralization function
+const pluralize = (word: string): string => {
+  if (word.endsWith("y")) {
+    return word.slice(0, -1) + "ies"
+  } else if (
+    word.endsWith("s") ||
+    word.endsWith("sh") ||
+    word.endsWith("ch") ||
+    word.endsWith("x") ||
+    word.endsWith("z")
+  ) {
+    return word + "es"
+  } else {
+    return word + "s"
+  }
+}
+
 export default function DynamicDataPage({
   params: { lang, organizationId, dataTypeId, dataTypeNameSlug },
 }: {
@@ -63,7 +80,7 @@ export default function DynamicDataPage({
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
-  // Local “never-undefined” helper.
+  // Local "never-undefined" helper.
   // If dict or dict.dynamicDataPage are missing we fall back to
   // the minimal strings below, avoiding runtime crashes.
   const dynamicDictDefaults = {
@@ -321,6 +338,36 @@ export default function DynamicDataPage({
     setEditingEntry(undefined)
   }
 
+  const renderCellValue = (field: Field, value: any) => {
+    if (value === null || value === undefined) return "N/A"
+
+    switch (field.type.toLowerCase()) {
+      case "boolean":
+        return String(value)
+      case "json":
+        return JSON.stringify(value)
+      case "file":
+        if (value && typeof value === "object" && value.url) {
+          return (
+            <div className="flex items-center space-x-2">
+              <span className="truncate max-w-[150px]">{value.filename || "File"}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(value.url, "_blank")}
+                className="h-6 w-6 p-0"
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </div>
+          )
+        }
+        return value?.toString() || "N/A"
+      default:
+        return value?.toString() || "N/A"
+    }
+  }
+
   if (loading || !dict || !dataType) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
@@ -338,10 +385,8 @@ export default function DynamicDataPage({
     <div className="grid gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-2xl font-bold">
-            {dynamicDict.title.replace("{dataTypeName}", dataType.name)}
-          </CardTitle>
-          {canAddData && ( // Changed condition here
+          <CardTitle className="text-2xl font-bold">{pluralize(dataType.name)}</CardTitle>
+          {canAddData && (
             <Button
               onClick={() => {
                 setEditingEntry(undefined)
@@ -349,13 +394,15 @@ export default function DynamicDataPage({
               }}
             >
               <Plus className="mr-2 h-4 w-4" />
-              {dynamicDict.addEntry}
+              Add {dataType.name}
             </Button>
           )}
         </CardHeader>
         <CardContent>
           {dataEntries.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">{dynamicDict.noEntriesFound}</div>
+            <div className="text-center py-4 text-muted-foreground">
+              No {pluralize(dataType.name).toLowerCase()} found.
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -372,13 +419,7 @@ export default function DynamicDataPage({
                 {dataEntries.map((entry) => (
                   <TableRow key={entry.id}>
                     {dataType.fields.map((field) => (
-                      <TableCell key={field.name}>
-                        {field.type === "boolean"
-                          ? String(entry.data[field.name])
-                          : field.type === "json"
-                            ? JSON.stringify(entry.data[field.name])
-                            : entry.data[field.name]?.toString() || "N/A"}
-                      </TableCell>
+                      <TableCell key={field.name}>{renderCellValue(field, entry.data[field.name])}</TableCell>
                     ))}
                     <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
                     <TableCell>{new Date(entry.updated_at).toLocaleString()}</TableCell>

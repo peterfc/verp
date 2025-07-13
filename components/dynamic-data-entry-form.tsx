@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FileUpload } from "@/components/file-upload"
 
 interface Field {
   name: string
@@ -90,6 +91,9 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
         case "json":
           initial[field.name] = "{}"
           break
+        case "file":
+          initial[field.name] = null
+          break
         default:
           initial[field.name] = ""
       }
@@ -151,6 +155,10 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
           break
         case "json":
           cleaned[f.name] = JSON.parse(v || "{}")
+          break
+        case "file":
+          // Store the file data object or null
+          cleaned[f.name] = v
           break
         default:
           cleaned[f.name] = v
@@ -238,6 +246,15 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
           </Select>
         )
 
+      case "file":
+        return (
+          <FileUpload
+            value={formData[field.name]}
+            onChange={(fileData) => handleChange(field.name, fileData)}
+            label={`Upload ${field.name}`}
+          />
+        )
+
       default:
         return (
           <div className="p-2 bg-yellow-100 border border-yellow-300 rounded">
@@ -257,8 +274,12 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>{dict.editorTitle}</CardTitle>
-        <CardDescription>{dict.editorDescription}</CardDescription>
+        <CardTitle>{initialData ? `Edit ${dataType.name}` : `Add ${dataType.name}`}</CardTitle>
+        <CardDescription>
+          {initialData
+            ? `Make changes to this ${dataType.name.toLowerCase()}.`
+            : `Add a new ${dataType.name.toLowerCase()}.`}
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -275,7 +296,7 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
             <Button type="button" variant="outline" onClick={onCancel}>
               {dict.cancelButton}
             </Button>
-            <Button type="submit">{dict.saveButton}</Button>
+            <Button type="submit">{initialData ? `Save ${dataType.name}` : `Add ${dataType.name}`}</Button>
           </div>
         </form>
       </CardContent>

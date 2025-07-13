@@ -1,16 +1,15 @@
 "use client"
 
-import React from "react"
-
-import { useState, useEffect, useCallback } from "react"
+import type React from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea" // Re-import Textarea for dropdown options
-import { useToast } from "@/hooks/use-toast"
+import { Textarea } from "@/components/ui/textarea"
 import { Plus, Minus } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 interface Organization {
   id: string
@@ -20,8 +19,9 @@ interface Organization {
 interface Field {
   name: string
   type: string
-  options?: string[] // The parsed array of options
-  tempOptionsInput?: string // The raw string input for the textarea
+  options?: string[]
+  /* raw textarea input for dropdown options – not saved to DB */
+  tempOptionsInput?: string
 }
 
 interface DataType {
@@ -33,7 +33,8 @@ interface DataType {
 }
 
 interface DataTypeEditorProps {
-  dataType?: DataType // Optional, for editing existing data types
+  /* existing dataType when editing, otherwise undefined for "new" */
+  dataType?: DataType
   organizations: Organization[]
   onSave: (dataType: { id?: string; name: string; fields: Field[]; organization_id: string }) => void
   onCancel: () => void
@@ -45,7 +46,7 @@ interface DataTypeEditorProps {
     organizationLabel: string
     saveButton: string
     cancelButton: string
-    invalidJson: string // Reusing for field name validation
+    invalidJson: string
     noOrganizationSelected: string
     noOrganizationsFound: string
     addFieldButton: string
@@ -56,16 +57,19 @@ interface DataTypeEditorProps {
       boolean: string
       date: string
       json: string
-      dropdown: string // New: Dropdown type
+      dropdown: string
+      file: string
     }
-    dropdownOptionsLabel: string // New: Label for dropdown options
-    dropdownOptionsPlaceholder: string // New: Placeholder for dropdown options
+    dropdownOptionsLabel: string
+    dropdownOptionsPlaceholder: string
   }
   isAdmin: boolean
   isManager: boolean
 }
 
-export function DataTypeEditor({
+/* ─────────────────────────────────────────────────────────────────── */
+
+const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
   dataType,
   organizations,
   onSave,
@@ -73,116 +77,128 @@ export function DataTypeEditor({
   dict,
   isAdmin,
   isManager,
-}: DataTypeEditorProps) {
-  const [name, setName] = useState(dataType?.name || "")
-  const [fieldsArray, setFieldsArray] = useState<Field[]>(() => {
-    if (dataType?.fields) {
-      return dataType.fields.map((field) => ({
-        ...field,
-        tempOptionsInput: field.type === "dropdown" ? field.options?.join(", ") || "" : undefined,
-      }))
-    }
-    return []
-  })
-  const [organizationId, setOrganizationId] = useState(dataType?.organization_id || "")
-  const { toast } = useToast()
+}) => {
+  const [name, setName] = useState("")
+  const [organizationId, setOrganizationId] = useState("")
+  const [fields, setFields] = useState<Field[]>([])
 
-  useEffect(() => {
-    if (dataType) {
-      setName(dataType.name)
-      setFieldsArray(
-        dataType.fields.map((field) => ({
-          ...field,
-          tempOptionsInput: field.type === "dropdown" ? field.options?.join(", ") || "" : undefined,
-        })) || [],
-      )
-      setOrganizationId(dataType.organization_id)
-    } else {
-      setName("")
-      setFieldsArray([])
-      setOrganizationId("")
-    }
-  }, [dataType])
+  /* helpers ──────────────────────────────────────────────────────── */
 
-  const handleAddField = useCallback(() => {
-    setFieldsArray((prev) => [...prev, { name: "", type: "string" }])
+  const isFormDisabled = !isAdmin && !isManager
+
+  const addField = useCallback(() => setFields((prev) => [...prev, { name: "", type: "string" }]), [])
+
+  const removeField = useCallback((index: number) => {
+    setFields((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const handleRemoveField = useCallback((index: number) => {
-    setFieldsArray((prev) => prev.filter((_, i) => i !== index))
-  }, [])
+  const updateField = useCallback((index: number, updated: Partial<Field>) => {
+    setFields((prev) =>
+      prev.map((f, i) => {
+        if (i !== index) return f
 
-  const handleFieldNameChange = useCallback((index: number, value: string) => {
-    setFieldsArray((prev) => prev.map((field, i) => (i === index ? { ...field, name: value } : field)))
-  }, [])
+        const updatedField = { ...f, ...updated }
 
-  const handleFieldTypeChange = useCallback((index: number, value: string) => {
-    setFieldsArray((prev) =>
-      prev.map((field, i) => {
-        if (i === index) {
-          const newField: Field = { ...field, type: value }
-          if (value === "dropdown") {
-            // Changed to lowercase "dropdown"
-            newField.options = field.options || [] // Keep existing parsed options
-            newField.tempOptionsInput = field.tempOptionsInput || field.options?.join(", ") || "" // Keep existing raw input or derive from parsed
-          } else {
-            delete newField.options
-            delete newField.tempOptionsInput // Remove raw input if type is not Dropdown
-          }
-          return newField
+        // If type is changing to dropdown and there's no tempOptionsInput, initialize it
+        if (updated.type === "dropdown" && !updatedField.tempOptionsInput) {
+          updatedField.tempOptionsInput = ""
         }
-        return field
+
+        // If type is changing away from dropdown, clear tempOptionsInput
+        if (updated.type && updated.type !== "dropdown") {
+          updatedField.tempOptionsInput = undefined
+        }
+
+        return updatedField
       }),
     )
   }, [])
 
-  const handleDropdownOptionsChange = useCallback((index: number, value: string) => {
-    setFieldsArray((prev) => prev.map((field, i) => (i === index ? { ...field, tempOptionsInput: value } : field)))
-  }, [])
+  /* sync props → state when component mounts or dataType changes ─────────────────────── */
+
+  useEffect(() => {
+    console.log("DataTypeEditor useEffect triggered with dataType:", dataType)
+
+    if (dataType) {
+      setName(dataType.name)
+      setOrganizationId(dataType.organization_id)
+
+      // Debug: log the fields we're processing
+      console.log("Processing fields:", dataType.fields)
+
+      // Properly initialize fields with tempOptionsInput for dropdown fields
+      const initializedFields = dataType.fields.map((field, index) => {
+        console.log(`Field ${index}:`, field)
+
+        // Check if this field has options (indicating it's a dropdown)
+        if (field.options && Array.isArray(field.options) && field.options.length > 0) {
+          const result = {
+            ...field,
+            type: "dropdown", // Ensure type is set to dropdown
+            tempOptionsInput: field.options.join(", "),
+          }
+          console.log(`Converted field ${index} to dropdown:`, result)
+          return result
+        }
+
+        // For non-dropdown fields, ensure tempOptionsInput is undefined
+        const result = {
+          ...field,
+          tempOptionsInput: undefined,
+        }
+        console.log(`Non-dropdown field ${index}:`, result)
+        return result
+      })
+
+      console.log("Final initialized fields:", initializedFields)
+      setFields(initializedFields)
+    } else {
+      setName("")
+      setOrganizationId("")
+      setFields([])
+    }
+  }, [dataType])
+
+  /* submit ───────────────────────────────────────────────────────── */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (isFormDisabled) return
 
-    const validationErrors: string[] = []
-
-    const processedFields: Field[] = fieldsArray.map((field) => {
-      if (!field.name.trim()) {
-        validationErrors.push("All field names must be filled.")
-      }
-
-      if (field.type === "dropdown") {
-        // Changed to lowercase "dropdown"
-        const parsedOptions = (field.tempOptionsInput || "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-
-        if (parsedOptions.length === 0) {
-          validationErrors.push(`Dropdown field "${field.name || "Unnamed field"}" must have at least one option.`)
-        }
-        return { ...field, options: parsedOptions, tempOptionsInput: undefined }
-      }
-      return { ...field, tempOptionsInput: undefined }
-    })
-
+    /* basic validation */
     if (!organizationId) {
-      validationErrors.push("Please choose an organization before saving.")
-    }
-
-    if (validationErrors.length > 0) {
       toast({
-        title: dict.invalidJson, // Reusing this for general validation errors
-        description: validationErrors.join("\n"),
+        title: dict.noOrganizationSelected,
         variant: "destructive",
-        duration: 5000,
       })
       return
     }
 
-    onSave({ id: dataType?.id, name, fields: processedFields, organization_id: organizationId })
+    const errors: string[] = []
+    const cleaned: Field[] = fields.map((f) => {
+      if (!f.name.trim()) errors.push("Every field needs a name.")
+
+      if (f.type === "dropdown") {
+        const opts = (f.tempOptionsInput ?? "")
+          .split(",")
+          .map((o) => o.trim())
+          .filter(Boolean)
+        if (opts.length === 0) errors.push(`Dropdown "${f.name || "Unnamed"}" needs options.`)
+        return { name: f.name, type: f.type, options: opts }
+      }
+
+      return { name: f.name, type: f.type, options: undefined }
+    })
+
+    if (errors.length) {
+      toast({ title: dict.invalidJson, description: errors.join("\n"), variant: "destructive" })
+      return
+    }
+
+    onSave({ id: dataType?.id, name, organization_id: organizationId, fields: cleaned })
   }
 
-  const isFormDisabled = !isAdmin && !isManager
+  /* ui ──────────────────────────────────────────────────────────── */
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -190,14 +206,13 @@ export function DataTypeEditor({
         <CardTitle>{dict.editorTitle}</CardTitle>
         <CardDescription>{dict.editorDescription}</CardDescription>
       </CardHeader>
+
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+        {/* Name & Organisation */}
+        <form onSubmit={handleSubmit} className="grid gap-6">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              {dict.nameLabel}
-            </Label>
+            <Label className="text-right">{dict.nameLabel}</Label>
             <Input
-              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
@@ -205,51 +220,48 @@ export function DataTypeEditor({
               disabled={isFormDisabled}
             />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="organization" className="text-right">
-              {dict.organizationLabel}
-            </Label>
+            <Label className="text-right">{dict.organizationLabel}</Label>
             <Select value={organizationId} onValueChange={setOrganizationId} disabled={isFormDisabled}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder={dict.organizationLabel} />
               </SelectTrigger>
               <SelectContent>
-                {organizations.length === 0 ? (
-                  <SelectItem value="" disabled>
+                {organizations.length === 0 && (
+                  <SelectItem value="__none" disabled>
                     {dict.noOrganizationsFound}
                   </SelectItem>
-                ) : (
-                  organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))
                 )}
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Dynamic Fields Section */}
-          <div className="grid grid-cols-4 items-start gap-4">
+          {/* dynamic field list */}
+          <div className="grid grid-cols-4 gap-4">
             <Label className="text-right pt-2">{dict.fieldsLabel}</Label>
-            <div className="col-span-3 grid gap-2 w-full">
-              {fieldsArray.map((field, index) => (
-                <React.Fragment key={index}>
-                  <div className="flex items-center gap-2 w-full">
+            <div className="col-span-3 space-y-4">
+              {fields.map((field, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-center gap-2">
                     <Input
                       placeholder={dict.nameLabel}
                       value={field.name}
-                      onChange={(e) => handleFieldNameChange(index, e.target.value)}
-                      className="flex-1"
+                      onChange={(e) => updateField(i, { name: e.target.value })}
                       required
                       disabled={isFormDisabled}
                     />
                     <Select
-                      value={field.type}
-                      onValueChange={(value) => handleFieldTypeChange(index, value)}
+                      value={field.type || ""}
+                      onValueChange={(v) => updateField(i, { type: v })}
                       disabled={isFormDisabled}
                     >
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -258,62 +270,54 @@ export function DataTypeEditor({
                         <SelectItem value="boolean">{dict.fieldTypeOptions.boolean}</SelectItem>
                         <SelectItem value="date">{dict.fieldTypeOptions.date}</SelectItem>
                         <SelectItem value="json">{dict.fieldTypeOptions.json}</SelectItem>
-                        <SelectItem value="dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>{" "}
-                        {/* Changed to lowercase "dropdown" */}
+                        <SelectItem value="dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>
+                        <SelectItem value="file">{dict.fieldTypeOptions.file}</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
                       type="button"
-                      variant="ghost"
                       size="icon"
-                      onClick={() => handleRemoveField(index)}
+                      variant="ghost"
+                      onClick={() => removeField(i)}
                       disabled={isFormDisabled}
                     >
                       <Minus className="h-4 w-4" />
-                      <span className="sr-only">{dict.removeFieldButton}</span>
                     </Button>
                   </div>
-                  {field.type === "dropdown" && ( // Changed to lowercase "dropdown"
-                    <div className="flex items-center gap-2 w-full pl-4">
-                      <Label htmlFor={`options-${index}`} className="sr-only">
-                        {dict.dropdownOptionsLabel}
-                      </Label>
+
+                  {field.type === "dropdown" && (
+                    <div className="ml-4">
                       <Textarea
-                        id={`options-${index}`}
                         placeholder={dict.dropdownOptionsPlaceholder}
-                        value={field.tempOptionsInput || ""} // Bind to tempOptionsInput
-                        onChange={(e) => handleDropdownOptionsChange(index, e.target.value)}
-                        className="flex-1 min-h-[40px]"
-                        required
+                        value={field.tempOptionsInput ?? ""}
+                        onChange={(e) => updateField(i, { tempOptionsInput: e.target.value })}
                         disabled={isFormDisabled}
                       />
                     </div>
                   )}
-                </React.Fragment>
+                </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddField}
-                className="w-full mt-2 bg-transparent"
-                disabled={isFormDisabled}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {dict.addFieldButton}
+
+              <Button type="button" variant="outline" onClick={addField} disabled={isFormDisabled}>
+                <Plus className="h-4 w-4 mr-2" /> {dict.addFieldButton}
               </Button>
             </div>
           </div>
-          {/* End Dynamic Fields Section */}
         </form>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
+
+      <CardFooter className="justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>
           {dict.cancelButton}
         </Button>
-        <Button type="submit" onClick={handleSubmit} disabled={isFormDisabled}>
+        <Button onClick={handleSubmit} disabled={isFormDisabled}>
           {dict.saveButton}
         </Button>
       </CardFooter>
     </Card>
   )
 }
+
+/* public API */
+export { DataTypeEditor }
+export default DataTypeEditor
