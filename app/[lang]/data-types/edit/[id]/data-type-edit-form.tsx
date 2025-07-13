@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { DataTypeEditor } from "@/components/data-type-editor"
 import { useToast } from "@/hooks/use-toast"
-import { notFound } from "next/navigation"
-import { createServerClient } from "@/lib/supabase/server"
-import { DataTypeEditForm } from "./data-type-edit-form"
+import { createBrowserClient } from "@/lib/supabase/client"
 
 interface Organization {
   id: string
@@ -26,54 +25,21 @@ interface DataType {
   organization?: { name: string }
 }
 
-interface EditDataTypePageProps {
-  params: {
-    lang: string
-    id: string
-  }
+interface DataTypeEditFormProps {
+  lang: string
+  dataType: DataType
+  organizations: Organization[]
 }
 
-export default async function EditDataTypePage({
-  params,
-}: {
-  params: { lang: "en" | "es"; id: string }
-}) {
-  const { lang, id } = params
-  const supabase = createServerClient()
-
-  // Fetch the data type
-  const { data: dataType, error: dataTypeError } = await supabase
-    .from("data_types")
-    .select(`
-      id,
-      name,
-      fields,
-      organization_id,
-      organization:organizations(name)
-    `)
-    .eq("id", id)
-    .single()
-
-  if (dataTypeError || !dataType) {
-    notFound()
-  }
-
-  // Fetch organizations for the dropdown
-  const { data: organizations, error: orgsError } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .order("name")
-
-  if (orgsError) {
-    console.error("Error fetching organizations:", orgsError)
-  }
-
+export function DataTypeEditForm({ lang, dataType, organizations }: DataTypeEditFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
+
+  const supabase = createBrowserClient()
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -114,7 +80,7 @@ export default async function EditDataTypePage({
         setDict({
           dataTypeEditor: {
             editorTitle: "Edit Data Type",
-            editorDescription: "Modify the data type definition.",
+            editorDescription: "Make changes to your data type configuration.",
             nameLabel: "Name",
             fieldsLabel: "Fields",
             organizationLabel: "Organization",
@@ -143,6 +109,8 @@ export default async function EditDataTypePage({
             success: "Success",
           },
         })
+      } finally {
+        setLoading(false)
       }
     }
     loadDictionary()
@@ -155,7 +123,7 @@ export default async function EditDataTypePage({
     organization_id: string
   }) => {
     try {
-      const response = await fetch(`/api/data-types/${id}`, {
+      const response = await fetch(`/api/data-types/${dataType.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +147,7 @@ export default async function EditDataTypePage({
       }
 
       toast({
-        title: "Success",
+        title: dict?.common?.success || "Success",
         description: "Data type updated successfully.",
       })
 
@@ -187,7 +155,7 @@ export default async function EditDataTypePage({
       router.push(`/${lang}/data-types`)
     } catch (err: any) {
       toast({
-        title: "Error",
+        title: dict?.common?.error || "Error",
         description: err.message || "Failed to update data type.",
         variant: "destructive",
       })
@@ -202,14 +170,20 @@ export default async function EditDataTypePage({
   if (loading || !dict) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
-        <p>Loading...</p>
+        <p>{dict?.common?.loading || "Loading..."}</p>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <DataTypeEditForm lang={lang} dataType={dataType as DataType} organizations={organizations || []} />
-    </div>
+    <DataTypeEditor
+      dataType={dataType}
+      organizations={organizations}
+      onSave={handleSave}
+      onCancel={handleCancel}
+      dict={dict.dataTypeEditor}
+      isAdmin={isAdmin}
+      isManager={isManager}
+    />
   )
 }

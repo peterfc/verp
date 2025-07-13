@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link" // Import Link
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-// import { DataTypeForm } from "@/components/data-type-form" // REMOVED
 import { DeleteDialog } from "@/components/delete-dialog"
 import { MoreHorizontal } from "lucide-react"
 import {
@@ -35,8 +34,6 @@ interface DataType {
 
 export default function DataTypesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [dataTypes, setDataTypes] = useState<DataType[]>([])
-  // const [isFormOpen, setIsFormOpen] = useState(false) // REMOVED
-  // const [editingDataType, setEditingDataType] = useState<DataType | undefined>(undefined) // REMOVED
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [dataTypeToDelete, setDataTypeToDelete] = useState<DataType | undefined>(undefined)
   const [loading, setLoading] = useState(true)
@@ -90,11 +87,10 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
             dataTypeDeleted: "Data Type deleted successfully.",
             failedToSaveDataType: "Failed to save data type.",
             failedToDeleteDataType: "Failed to delete data type.",
-            fields: "Fields", // Keep this in dict for other uses if any
+            fields: "Fields",
             organization: "Organization",
           },
           dataTypeForm: {
-            // This will be replaced by dataTypeEditor in dict
             editTitle: "Edit Data Type",
             addTitle: "Add Data Type",
             editDescription: "Make changes to the data type here.",
@@ -109,7 +105,6 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
             invalidJson: "Invalid JSON",
           },
           dataTypeEditor: {
-            // NEW: Add editor specific dictionary entries
             editorTitle: "Data Type Editor",
             editorDescription: "Create or edit your data type schema.",
             nameLabel: "Name",
@@ -128,7 +123,11 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
               boolean: "Boolean",
               date: "Date",
               json: "JSON",
+              dropdown: "Dropdown",
+              file: "File",
             },
+            dropdownOptionsLabel: "Dropdown Options",
+            dropdownOptionsPlaceholder: "Enter options separated by commas (e.g., Option 1, Option 2, Option 3)",
           },
           common: {
             name: "Name",
@@ -192,9 +191,6 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
     }
   }, [fetchDataTypes, dict])
 
-  // handleSaveDataType and handleDeleteDataType remain the same as they are called from the page itself
-  // or from the DeleteDialog, not directly from the DataTypeForm/Editor.
-
   const handleDeleteDataType = async () => {
     if (!dataTypeToDelete) return
     setError(null)
@@ -251,14 +247,10 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold">{dict.dataTypesPage.title}</CardTitle>
-          {(isAdmin || isManager) && ( // Only show if the user is an admin or manager
-            <Button asChild>
-              {" "}
-              {/* Use asChild to make the Link a button */}
-              <Link href={`/${lang}/data-types/new`}>
-                {dict.common.add.replace("{itemType}", dict.dataTypesPage.title.toLowerCase())}
-              </Link>
-            </Button>
+          {(isAdmin || isManager) && (
+            <Link href={`/${lang}/data-types/new`}>
+              <Button>{dict.common.add.replace("{itemType}", dict.dataTypesPage.title.toLowerCase())}</Button>
+            </Link>
           )}
         </CardHeader>
         <CardContent>
@@ -273,8 +265,7 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
               <TableHeader>
                 <TableRow>
                   <TableHead>{dict.common.name}</TableHead>
-                  {/* Removed TableHead for Fields */}
-                  <TableHead>{dict.dataTypesPage.organization}</TableHead> {/* Added Organization column */}
+                  <TableHead>{dict.dataTypesPage.organization}</TableHead>
                   {showActionsColumn && <TableHead className="text-right">{dict.common.actions}</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -282,8 +273,6 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
                 {dataTypes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={showActionsColumn ? 3 : 2} className="text-center py-4">
-                      {" "}
-                      {/* Adjusted colspan */}
                       {dict.common.noDataFound.replace("{itemType}", dict.dataTypesPage.title.toLowerCase())}
                     </TableCell>
                   </TableRow>
@@ -291,8 +280,7 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
                   dataTypes.map((dataType) => (
                     <TableRow key={dataType.id}>
                       <TableCell className="font-medium">{dataType.name}</TableCell>
-                      {/* Removed TableCell for Fields */}
-                      <TableCell>{dataType.organization?.name || "N/A"}</TableCell> {/* Display organization name */}
+                      <TableCell>{dataType.organization?.name || "N/A"}</TableCell>
                       {showActionsColumn && (
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -305,11 +293,9 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
                               {(isAdmin || isManager) && (
-                                <DropdownMenuItem asChild>
-                                  {" "}
-                                  {/* Use asChild to make the Link a menu item */}
-                                  <Link href={`/${lang}/data-types/edit/${dataType.id}`}>{dict.common.edit}</Link>
-                                </DropdownMenuItem>
+                                <Link href={`/${lang}/data-types/edit/${dataType.id}`}>
+                                  <DropdownMenuItem>{dict.common.edit}</DropdownMenuItem>
+                                </Link>
                               )}
                               <DropdownMenuSeparator />
                               {(isAdmin || isManager) && (
@@ -329,32 +315,6 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
           )}
         </CardContent>
       </Card>
-
-      {/* DataTypeForm is removed as it's replaced by the new pages */}
-      {/*
-      <DataTypeForm
-        isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        dataType={editingDataType}
-        onSave={handleSaveDataType}
-        dict={{
-          editTitle: dict.dataTypeForm.editTitle,
-          addTitle: dict.dataTypeForm.addTitle,
-          editDescription: dict.dataTypeForm.editDescription,
-          addDescription: dict.dataTypeForm.addDescription,
-          nameLabel: dict.dataTypeForm.nameLabel,
-          fieldsLabel: dict.dataTypeForm.fieldsLabel,
-          organizationLabel: dict.dataTypeForm.organizationLabel,
-          saveChangesButton: dict.common.saveChanges,
-          addDataTypeButton: dict.dataTypeForm.addDataTypeButton,
-          errorFetchingOrganizations: dict.dataTypeForm.errorFetchingOrganizations,
-          failedToLoadOrganizations: dict.dataTypeForm.failedToLoadOrganizations,
-          invalidJson: dict.dataTypeForm.invalidJson,
-        }}
-        isAdmin={isAdmin}
-        isManager={isManager}
-      />
-      */}
 
       {dataTypeToDelete && (
         <DeleteDialog
