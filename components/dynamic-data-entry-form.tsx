@@ -1,15 +1,17 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileUpload } from "@/components/file-upload"
+import { useToast } from "@/hooks/use-toast"
 
 interface Field {
   name: string
@@ -27,219 +29,159 @@ interface DataType {
 interface DynamicDataEntry {
   id?: string
   data_type_id: string
-  organization_id: string
   data: Record<string, any>
 }
 
-interface Dictionary {
-  editorTitle: string
-  editorDescription: string
-  saveButton: string
-  cancelButton: string
-  invalidInput: string
-  requiredField: string
-  invalidNumber: string
-  invalidJson: string
-  invalidDate: string
-  fieldLabel: string
-}
-
-interface Props {
+interface DynamicDataEntryFormProps {
   dataType: DataType
-  initialData?: DynamicDataEntry
+  entry?: DynamicDataEntry
   onSave: (entry: DynamicDataEntry) => void
   onCancel: () => void
-  dict?: Partial<Dictionary>
+  dict: {
+    formTitle: string
+    formDescription: string
+    saveButton: string
+    cancelButton: string
+    requiredField: string
+  }
 }
 
-const fallbackDict: Dictionary = {
-  editorTitle: "Data Entry",
-  editorDescription: "Fill in the fields for this entry.",
-  saveButton: "Save",
-  cancelButton: "Cancel",
-  invalidInput: "Invalid input",
-  requiredField: "This field is required.",
-  invalidNumber: "Please enter a valid number.",
-  invalidJson: "Invalid JSON format.",
-  invalidDate: "Invalid date.",
-  fieldLabel: "Field",
-}
-
-export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, dict: dictProp }: Props) {
-  const dict = { ...fallbackDict, ...(dictProp ?? {}) }
+export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }: DynamicDataEntryFormProps) {
   const [formData, setFormData] = useState<Record<string, any>>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData.data)
-      return
+    if (entry) {
+      setFormData(entry.data || {})
+    } else {
+      // Initialize form data with empty values
+      const initialData: Record<string, any> = {}
+      dataType.fields.forEach((field) => {
+        switch (field.type) {
+          case "boolean":
+            initialData[field.name] = false
+            break
+          case "number":
+            initialData[field.name] = ""
+            break
+          case "file":
+            initialData[field.name] = null
+            break
+          default:
+            initialData[field.name] = ""
+        }
+      })
+      setFormData(initialData)
     }
+  }, [dataType, entry])
 
-    // Defaults for a *new* entry
-    const initial: Record<string, any> = {}
-    dataType.fields.forEach((field) => {
-      switch (
-        field.type.toLowerCase() // Convert to lowercase for comparison
-      ) {
-        case "boolean":
-          initial[field.name] = false
-          break
-        case "number":
-          initial[field.name] = ""
-          break
-        case "json":
-          initial[field.name] = "{}"
-          break
-        case "file":
-          initial[field.name] = null
-          break
-        default:
-          initial[field.name] = ""
-      }
-    })
-    setFormData(initial)
-  }, [initialData, dataType.fields])
-
-  const validateField = (field: Field, value: any): string | undefined => {
-    const fieldType = field.type.toLowerCase() // Convert to lowercase for comparison
-
-    if (fieldType === "number" && value !== "" && isNaN(Number(value))) return dict.invalidNumber
-
-    if (fieldType === "json") {
-      try {
-        JSON.parse(value)
-      } catch {
-        return dict.invalidJson
-      }
-    }
-
-    if (fieldType === "date" && value && isNaN(new Date(value).getTime())) return dict.invalidDate
-
-    return undefined
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }))
   }
 
-  const handleChange = (fieldName: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldName]: value }))
-    setErrors((prev) => ({ ...prev, [fieldName]: undefined }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
 
-    const newErrors: Record<string, string> = {}
-    let hasErrors = false
-
-    dataType.fields.forEach((field) => {
-      const val = formData[field.name]
-      const err = validateField(field, val)
-      if (err) {
-        newErrors[field.name] = err
-        hasErrors = true
+    try {
+      // Validate required fields
+      for (const field of dataType.fields) {
+        const value = formData[field.name]
+        if (field.type !== "boolean" && (!value || (typeof value === "string" && !value.trim()))) {
+          toast({
+            title: "Validation Error",
+            description: `${field.name} is required`,
+            variant: "destructive",
+          })
+          setLoading(false)
+          return
+        }
       }
-    })
 
-    if (hasErrors) {
-      setErrors(newErrors)
-      return
+      const entryData: DynamicDataEntry = {
+        id: entry?.id,
+        data_type_id: dataType.id,
+        data: formData,
+      }
+
+      onSave(entryData)
+    } catch (error) {
+      console.error("Form submission error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save entry",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
-
-    const cleaned: Record<string, any> = {}
-    dataType.fields.forEach((f) => {
-      const v = formData[f.name]
-      const fieldType = f.type.toLowerCase() // Convert to lowercase for comparison
-
-      switch (fieldType) {
-        case "number":
-          cleaned[f.name] = v === "" ? null : Number(v)
-          break
-        case "json":
-          cleaned[f.name] = JSON.parse(v || "{}")
-          break
-        case "file":
-          // Store the file data object or null
-          cleaned[f.name] = v
-          break
-        default:
-          cleaned[f.name] = v
-      }
-    })
-
-    onSave({
-      ...initialData,
-      data_type_id: dataType.id,
-      organization_id: dataType.organization_id,
-      data: cleaned,
-    })
   }
 
   const renderField = (field: Field) => {
-    const fieldType = field.type.toLowerCase() // Convert to lowercase for comparison
+    const value = formData[field.name]
 
-    switch (fieldType) {
+    switch (field.type) {
       case "string":
         return (
           <Input
-            id={field.name}
-            value={formData[field.name] ?? ""}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            value={value || ""}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+            placeholder={`Enter ${field.name.toLowerCase()}`}
           />
         )
 
       case "number":
         return (
           <Input
-            id={field.name}
             type="number"
-            value={formData[field.name] ?? ""}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            value={value || ""}
+            onChange={(e) => handleFieldChange(field.name, e.target.value ? Number(e.target.value) : "")}
+            placeholder={`Enter ${field.name.toLowerCase()}`}
           />
         )
 
       case "boolean":
         return (
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id={field.name}
-              checked={Boolean(formData[field.name])}
-              onCheckedChange={(c) => handleChange(field.name, c)}
-            />
-            <label htmlFor={field.name} className="text-sm font-medium leading-none">
-              {field.name}
-            </label>
+            <Checkbox checked={Boolean(value)} onCheckedChange={(checked) => handleFieldChange(field.name, checked)} />
+            <Label>Yes</Label>
           </div>
         )
 
       case "date":
-        return (
-          <Input
-            id={field.name}
-            type="date"
-            value={formData[field.name] ?? ""}
-            onChange={(e) => handleChange(field.name, e.target.value)}
-          />
-        )
+        return <Input type="date" value={value || ""} onChange={(e) => handleFieldChange(field.name, e.target.value)} />
 
       case "json":
         return (
           <Textarea
-            id={field.name}
-            rows={5}
-            value={formData[field.name] ?? "{}"}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            value={typeof value === "string" ? value : JSON.stringify(value || {}, null, 2)}
+            onChange={(e) => {
+              try {
+                const parsed = JSON.parse(e.target.value)
+                handleFieldChange(field.name, parsed)
+              } catch {
+                handleFieldChange(field.name, e.target.value)
+              }
+            }}
+            placeholder={`Enter JSON for ${field.name.toLowerCase()}`}
+            rows={4}
           />
         )
 
       case "dropdown":
         return (
-          <Select value={formData[field.name] ?? ""} onValueChange={(v) => handleChange(field.name, v)}>
+          <Select value={value || ""} onValueChange={(selectedValue) => handleFieldChange(field.name, selectedValue)}>
             <SelectTrigger>
-              <SelectValue placeholder={`Select ${field.name}`} />
+              <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((opt) => (
-                <SelectItem key={opt} value={opt}>
-                  {opt}
+              {field.options?.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -249,54 +191,49 @@ export function DynamicDataEntryForm({ dataType, initialData, onSave, onCancel, 
       case "file":
         return (
           <FileUpload
-            value={formData[field.name]}
-            onChange={(fileData) => handleChange(field.name, fileData)}
-            label={`Upload ${field.name}`}
+            value={value}
+            onChange={(file) => handleFieldChange(field.name, file)}
+            accept="*/*"
+            maxSize={10 * 1024 * 1024} // 10MB
           />
         )
 
       default:
         return (
-          <div className="p-2 bg-yellow-100 border border-yellow-300 rounded">
-            <strong>Unknown field type:</strong> {field.type}
-            <br />
-            <Input
-              id={field.name}
-              value={formData[field.name] ?? ""}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              placeholder={`Enter ${field.name}`}
-            />
-          </div>
+          <Input
+            value={value || ""}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+            placeholder={`Enter ${field.name.toLowerCase()}`}
+          />
         )
     }
   }
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>{initialData ? `Edit ${dataType.name}` : `Add ${dataType.name}`}</CardTitle>
-        <CardDescription>
-          {initialData
-            ? `Make changes to this ${dataType.name.toLowerCase()}.`
-            : `Add a new ${dataType.name.toLowerCase()}.`}
-        </CardDescription>
+        <CardTitle>{dict.formTitle}</CardTitle>
+        <CardDescription>{dict.formDescription}</CardDescription>
       </CardHeader>
-
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          {dataType.fields.map((field, index) => (
-            <div key={field.name} className="grid gap-2">
-              <Label htmlFor={field.name}>{field.name}</Label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {dataType.fields.map((field) => (
+            <div key={field.name} className="space-y-2">
+              <Label htmlFor={field.name}>
+                {field.name}
+                <span className="text-red-500 ml-1">*</span>
+              </Label>
               {renderField(field)}
-              {errors[field.name] && <p className="text-red-500 text-sm">{errors[field.name]}</p>}
             </div>
           ))}
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
               {dict.cancelButton}
             </Button>
-            <Button type="submit">{initialData ? `Save ${dataType.name}` : `Add ${dataType.name}`}</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : dict.saveButton}
+            </Button>
           </div>
         </form>
       </CardContent>

@@ -1,12 +1,13 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
-import { Upload, X, File, Download } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { Upload, X, File } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface FileData {
   url: string
@@ -18,21 +19,22 @@ interface FileData {
 interface FileUploadProps {
   value?: FileData | null
   onChange: (file: FileData | null) => void
-  disabled?: boolean
   accept?: string
   maxSize?: number // in bytes
+  disabled?: boolean
 }
 
 export function FileUpload({
   value,
   onChange,
-  disabled = false,
-  accept = "image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx,.xls",
+  accept = "*/*",
   maxSize = 10 * 1024 * 1024, // 10MB default
+  disabled = false,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   const handleFileSelect = async (file: File) => {
     if (file.size > maxSize) {
@@ -51,7 +53,7 @@ export function FileUpload({
       const formData = new FormData()
       formData.append("file", file)
 
-      // Simulate upload progress
+      // Simulate progress for better UX
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90))
       }, 100)
@@ -65,29 +67,28 @@ export function FileUpload({
       setUploadProgress(100)
 
       if (!response.ok) {
-        throw new Error("Upload failed")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload failed")
       }
 
       const result = await response.json()
 
-      const fileData: FileData = {
+      onChange({
         url: result.url,
         filename: file.name,
         size: file.size,
         type: file.type,
-      }
-
-      onChange(fileData)
+      })
 
       toast({
-        title: "File uploaded successfully",
-        description: file.name,
+        title: "Upload successful",
+        description: `${file.name} has been uploaded successfully.`,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error)
       toast({
         title: "Upload failed",
-        description: "Please try again",
+        description: error.message || "Failed to upload file",
         variant: "destructive",
       })
     } finally {
@@ -96,44 +97,38 @@ export function FileUpload({
     }
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }
-
   const handleRemove = async () => {
-    if (value?.url) {
-      try {
-        await fetch("/api/upload/delete", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: value.url }),
-        })
-      } catch (error) {
-        console.error("Delete error:", error)
-      }
+    if (!value) return
+
+    try {
+      await fetch("/api/upload/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: value.url }),
+      })
+    } catch (error) {
+      console.error("Failed to delete file:", error)
     }
 
     onChange(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+    toast({
+      title: "File removed",
+      description: "File has been removed successfully.",
+    })
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (disabled || uploading) return
+
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      handleFileSelect(files[0])
     }
   }
 
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault()
-    const file = event.dataTransfer.files[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault()
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
   }
 
   const formatFileSize = (bytes: number) => {
@@ -144,61 +139,61 @@ export function FileUpload({
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  if (value) {
-    return (
-      <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-        <File className="h-4 w-4 text-muted-foreground" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{value.filename}</p>
-          <p className="text-xs text-muted-foreground">{formatFileSize(value.size)}</p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => window.open(value.url, "_blank")}
-          disabled={disabled}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={disabled}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-2">
-      <div
-        className="border-2 border-dashed border-muted-foreground/25 rounded-md p-6 text-center hover:border-muted-foreground/50 transition-colors"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mb-2">Drag and drop a file here, or click to select</p>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || uploading}
+    <div className="space-y-4">
+      {!value ? (
+        <div
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            disabled || uploading
+              ? "border-gray-200 bg-gray-50"
+              : "border-gray-300 hover:border-gray-400 cursor-pointer"
+          }`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onClick={() => !disabled && !uploading && fileInputRef.current?.click()}
         >
-          {uploading ? "Uploading..." : "Select File"}
-        </Button>
-        <Input
-          ref={fileInputRef}
-          type="file"
-          accept={accept}
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={disabled}
-        />
-      </div>
+          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <p className="text-sm text-gray-600 mb-2">
+            {uploading ? "Uploading..." : "Click to upload or drag and drop"}
+          </p>
+          <p className="text-xs text-gray-500">Max file size: {Math.round(maxSize / 1024 / 1024)}MB</p>
+
+          <Input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleFileSelect(file)
+            }}
+            className="hidden"
+            disabled={disabled || uploading}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+          <div className="flex items-center space-x-3">
+            <File className="h-8 w-8 text-blue-500" />
+            <div>
+              <p className="text-sm font-medium">{value.filename}</p>
+              <p className="text-xs text-gray-500">{formatFileSize(value.size)}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => window.open(value.url, "_blank")}>
+              View
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleRemove} disabled={disabled}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {uploading && (
         <div className="space-y-2">
           <Progress value={uploadProgress} />
-          <p className="text-xs text-center text-muted-foreground">Uploading... {uploadProgress}%</p>
+          <p className="text-xs text-gray-500 text-center">Uploading... {uploadProgress}%</p>
         </div>
       )}
     </div>

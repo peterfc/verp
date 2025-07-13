@@ -1,16 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { put } from "@vercel/blob"
-import { createClient } from "@/lib/supabase/server"
+import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    // Check if user is authenticated
+    // Check authentication
+    const supabase = await createServerClient()
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
+
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -25,22 +25,22 @@ export async function POST(request: NextRequest) {
     // Validate file size (10MB limit)
     const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: "File too large" }, { status: 400 })
+      return NextResponse.json({ error: "File size must be less than 10MB" }, { status: 400 })
     }
 
-    // Validate file type
+    // Validate file type (basic security check)
     const allowedTypes = [
       "image/jpeg",
       "image/png",
       "image/gif",
       "image/webp",
       "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "text/plain",
       "text/csv",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
 
     if (!allowedTypes.includes(file.type)) {
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now()
     const randomString = Math.random().toString(36).substring(2, 15)
-    const extension = file.name.split(".").pop()
-    const filename = `${user.id}/${timestamp}-${randomString}.${extension}`
+    const fileExtension = file.name.split(".").pop()
+    const filename = `${user.id}/${timestamp}-${randomString}.${fileExtension}`
 
     // Upload to Vercel Blob
     const blob = await put(filename, file, {
@@ -66,6 +66,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Upload error:", error)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

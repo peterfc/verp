@@ -51,6 +51,7 @@ export function DataTypeEditForm({ lang, dataType, organizations }: DataTypeEdit
 
       if (user) {
         const { data: userProfile, error } = await supabase.from("profiles").select("type").eq("id", user.id).single()
+
         if (error) {
           console.error("Error fetching current user profile type:", error)
         } else if (userProfile) {

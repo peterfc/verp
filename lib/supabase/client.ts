@@ -1,25 +1,21 @@
-import { createBrowserClient as createClient } from "@supabase/ssr"
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr"
+import type { Database } from "@/types/database"
 
-// Keep a singleton.
-let supabaseClient: SupabaseClient | null = null
+let client: ReturnType<typeof createSupabaseBrowserClient<Database>> | null = null
 
-export const createBrowserClient = (): SupabaseClient | null => {
-  if (supabaseClient) {
-    return supabaseClient
+export function createBrowserClient() {
+  if (client) {
+    return client
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  client = createSupabaseBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn(
-      "Supabase environment variables (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY) are missing. " +
-        "Supabase client will not be initialized. Please ensure these are set in your Vercel project settings.",
-    )
-    return null // Return null if environment variables are missing
-  }
-
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
-  return supabaseClient
+  return client
 }
+
+// Export as default and named export for compatibility
+export default createBrowserClient
+export const createClient = createBrowserClient
