@@ -87,11 +87,29 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
             addTitle: "Add Organization",
             editDescription: "Make changes to the organization here.",
             addDescription: "Add a new organization to your list.",
+            nameLabel: "Name",
+            namePlaceholder: "Enter organization name", // Added
             contactLabel: "Contact",
+            contactPlaceholder: "Enter contact information", // Added
             industryLabel: "Industry",
+            industryPlaceholder: "Enter industry", // Added
             profilesLabel: "Profiles",
             errorFetchingProfiles: "Error fetching profiles",
             failedToLoadProfiles: "Failed to load profiles for selection.",
+            saveChangesButton: "Save changes",
+            addOrganizationButton: "Add Organization",
+            saveButton: "Save", // Added
+            savingButton: "Saving...", // Added
+            cancelButton: "Cancel", // Added
+            deleteButton: "Delete", // Added
+            deletingButton: "Deleting...", // Added
+            confirmDeleteTitle: "Confirm Deletion", // Added
+            confirmDeleteDescription:
+              "Are you sure you want to delete this organization? This action cannot be undone.", // Added
+            successToastTitle: "Success!", // Added
+            successToastDescription: "Organization saved successfully.", // Added
+            errorToastTitle: "Error", // Added
+            errorToastDescription: "Failed to save organization.", // Added
           },
           multiSelectProfiles: {
             selectProfilesPlaceholder: "Select profiles...",
@@ -157,9 +175,9 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
   const handleSaveOrganization = async (organizationData: {
     id?: string
     name: string
-    contact: string
-    industry: string
-    profile_ids: string[]
+    contact?: string
+    industry?: string
+    profile_ids?: string[]
   }) => {
     setError(null)
     try {
@@ -349,17 +367,31 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
           addTitle: dict.organizationForm.addTitle,
           editDescription: dict.organizationForm.editDescription,
           addDescription: dict.organizationForm.addDescription,
-          nameLabel: dict.common.name,
+          nameLabel: dict.organizationForm.nameLabel,
+          namePlaceholder: dict.organizationForm.namePlaceholder, // Added
           contactLabel: dict.organizationForm.contactLabel,
+          contactPlaceholder: dict.organizationForm.contactPlaceholder, // Added
           industryLabel: dict.organizationForm.industryLabel,
+          industryPlaceholder: dict.organizationForm.industryPlaceholder, // Added
           profilesLabel: dict.organizationForm.profilesLabel,
-          saveChangesButton: dict.common.saveChanges,
-          addOrganizationButton: dict.common.add.replace("{itemType}", dict.organizationsPage.title.toLowerCase()),
+          saveChangesButton: dict.organizationForm.saveChangesButton,
+          addOrganizationButton: dict.organizationForm.addOrganizationButton,
           errorFetchingProfiles: dict.organizationForm.errorFetchingProfiles,
           failedToLoadProfiles: dict.organizationForm.failedToLoadProfiles,
           selectProfilesPlaceholder: dict.multiSelectProfiles.selectProfilesPlaceholder,
           searchProfilesPlaceholder: dict.multiSelectProfiles.searchProfilesPlaceholder,
           noProfilesFound: dict.multiSelectProfiles.noProfilesFound,
+          saveButton: dict.organizationForm.saveButton, // Added
+          savingButton: dict.organizationForm.savingButton, // Added
+          cancelButton: dict.organizationForm.cancelButton, // Added
+          deleteButton: dict.organizationForm.deleteButton, // Added
+          deletingButton: dict.organizationForm.deletingButton, // Added
+          confirmDeleteTitle: dict.organizationForm.confirmDeleteTitle, // Added
+          confirmDeleteDescription: dict.organizationForm.confirmDeleteDescription, // Added
+          successToastTitle: dict.organizationForm.successToastTitle, // Added
+          successToastDescription: dict.organizationForm.successToastDescription, // Added
+          errorToastTitle: dict.organizationForm.errorToastTitle, // Added
+          errorToastDescription: dict.organizationForm.errorToastDescription, // Added
         }}
         isAdmin={isAdmin}
         isManager={isManager}
