@@ -1,7 +1,5 @@
 "use client"
 
-import { DialogDescription } from "@/components/ui/dialog"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -9,17 +7,18 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { MultiSelectProfiles } from "@/components/multi-select-profiles"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { createClient } from "@/lib/supabase/client"
 import type { Organization, Profile } from "@/types/data" // Import Organization and Profile types
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import Dialog components
 
 interface OrganizationFormProps {
   isOpen: boolean // Added
   onOpenChange: (open: boolean) => void // Added
+  onSave: (organizationData: Organization) => Promise<void>
   organization?: Organization
   profiles: Profile[]
   lang: string
@@ -67,16 +66,7 @@ const formSchema = z.object({
   profile_ids: z.array(z.string().uuid()).optional(),
 })
 
-export function OrganizationForm({
-  isOpen,
-  onOpenChange,
-  organization,
-  profiles,
-  lang,
-  dict,
-  isAdmin,
-  isManager,
-}: OrganizationFormProps) {
+export function OrganizationForm({ organization, profiles, lang, dict, isAdmin, isManager }: OrganizationFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const [isSaving, setIsSaving] = useState(false)
@@ -234,12 +224,12 @@ export function OrganizationForm({
   const isFormDisabled = !isAdmin && !isManager
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{organization ? dict.editTitle : dict.addTitle}</DialogTitle>
-          <DialogDescription>{organization ? dict.editDescription : dict.addDescription}</DialogDescription>
-        </DialogHeader>
+    <Card className="w-full max-w-4xl">
+      <CardHeader>
+        <CardTitle>{organization ? dict.editTitle : dict.addTitle}</CardTitle>
+        <CardDescription>{organization ? dict.editDescription : dict.addDescription}</CardDescription>
+      </CardHeader>
+      <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
@@ -306,12 +296,7 @@ export function OrganizationForm({
               )}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSaving || isDeleting}
-              >
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSaving || isDeleting}>
                 {dict.cancelButton}
               </Button>
               <Button type="submit" disabled={isSaving || isDeleting || isFormDisabled}>
@@ -330,7 +315,7 @@ export function OrganizationForm({
             </div>
           </form>
         </Form>
-      </DialogContent>
+      </CardContent>
       <DeleteDialog
         isOpen={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
@@ -344,6 +329,6 @@ export function OrganizationForm({
           deleteButton: dict.deleteButton,
         }}
       />
-    </Dialog>
+    </Card>
   )
 }

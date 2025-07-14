@@ -172,13 +172,7 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
     }
   }, [fetchOrganizations, dict])
 
-  const handleSaveOrganization = async (organizationData: {
-    id?: string
-    name: string
-    contact?: string
-    industry?: string
-    profile_ids?: string[]
-  }) => {
+  const handleSaveOrganization = async (organizationData: Organization) => {
     setError(null)
     try {
       let response: Response
