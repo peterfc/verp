@@ -5,9 +5,15 @@ import { Check, ChevronsUpDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList, // Import CommandList
+} from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Badge } from "@/components/ui/badge"
 import type { Profile } from "@/types/data" // Import Profile from types/data
 
 interface MultiSelectProfilesProps {
@@ -32,7 +38,6 @@ export function MultiSelectProfiles({
   const [open, setOpen] = React.useState(false)
 
   const handleSelect = (profileId: string) => {
-    if (disabled) return // Prevent selection if disabled
     const isSelected = selectedProfileIds.includes(profileId)
     if (isSelected) {
       onSelectionChange(selectedProfileIds.filter((id) => id !== profileId))
@@ -42,40 +47,30 @@ export function MultiSelectProfiles({
   }
 
   const selectedNames = selectedProfileIds
-    .map((id) => profiles.find((p) => p.id === id)?.name)
-    .filter(Boolean) as string[]
+    .map((id) => profiles.find((profile) => profile.id === id)?.name)
+    .filter(Boolean)
+    .join(", ")
 
   return (
-    <Popover open={open && !disabled} onOpenChange={setOpen}>
-      {" "}
-      {/* Disable popover if disabled */}
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between h-auto min-h-[36px] flex-wrap bg-transparent"
+          className="w-full justify-between bg-transparent"
           disabled={disabled} // Apply disabled prop to the button
         >
-          {selectedNames.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {selectedNames.map((name) => (
-                <Badge key={name} variant="secondary">
-                  {name}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            dict.selectProfilesPlaceholder
-          )}
+          {selectedProfileIds.length > 0 ? selectedNames : dict.selectProfilesPlaceholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput placeholder={dict.searchProfilesPlaceholder} disabled={disabled} />{" "}
-          {/* Disable input if disabled */}
+          <CommandInput placeholder={dict.searchProfilesPlaceholder} />
           <CommandList>
+            {" "}
+            {/* Wrap CommandGroup and CommandEmpty in CommandList */}
             <CommandEmpty>{dict.noProfilesFound}</CommandEmpty>
             <CommandGroup>
               {profiles.map((profile) => (
@@ -83,7 +78,7 @@ export function MultiSelectProfiles({
                   key={profile.id}
                   value={profile.name}
                   onSelect={() => handleSelect(profile.id)}
-                  disabled={disabled} // Disable individual items if disabled
+                  disabled={disabled} // Apply disabled prop to command items
                 >
                   <Check
                     className={cn(
@@ -91,7 +86,7 @@ export function MultiSelectProfiles({
                       selectedProfileIds.includes(profile.id) ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  {profile.name} ({profile.email})
+                  {profile.name}
                 </CommandItem>
               ))}
             </CommandGroup>

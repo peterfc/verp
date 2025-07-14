@@ -10,6 +10,9 @@ export interface Profile {
 export interface Organization {
   id: string
   name: string
+  contact: string // Added
+  industry: string // Added
+  profiles?: Profile[] // Added, assuming the API returns nested profiles
 }
 
 export interface Field {
