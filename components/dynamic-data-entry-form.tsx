@@ -18,34 +18,12 @@ import { cn } from "@/lib/utils"
 import { FileUpload } from "@/components/file-upload"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
-
-interface Field {
-  name: string
-  type: string
-  options?: string[]
-  referenceDataTypeId?: string
-}
-
-interface DataType {
-  id: string
-  name: string
-  fields: Field[]
-  organization_id: string
-}
-
-interface DynamicDataEntry {
-  id?: string
-  data_type_id: string
-  organization_id: string
-  data: Record<string, any>
-  created_at?: string
-  updated_at?: string
-}
+import type { Field, DataType, DynamicDataEntry } from "@/types/data" // Import from new types file
 
 interface DynamicDataEntryFormProps {
   dataType: DataType
   entry?: DynamicDataEntry
-  onSave: (entry: DynamicDataEntry) => Promise<void>
+  onSave: (entry: DynamicDataEntry) => Promise<void> // Corrected to accept Promise<void>
   onCancel: () => void
   dict?: Record<string, any> // ✅ optional
 }
