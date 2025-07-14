@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { data: profiles, error } = await supabase.from("profiles").select("*")
 
   if (error) {
@@ -20,7 +20,7 @@ export async function GET() {
 // Keeping this route for consistency, but it won't be used by the current UI's "Add Profile"
 export async function POST(request: Request) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { name, email, type } = await request.json() // Destructure 'type'
 
   // In a real app, you'd likely link this to auth.users or have an admin role

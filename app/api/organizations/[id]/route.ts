@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
   const { data: organization, error } = await supabase
     .from("organizations")
@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
   const { name, contact, industry, profile_ids } = await request.json()
 
@@ -99,7 +99,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
 
   // ON DELETE CASCADE on foreign keys in organization_profiles table will handle deleting associations

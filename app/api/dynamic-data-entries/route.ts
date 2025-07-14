@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
 
   try {
     const { data, error } = await supabase
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
 
   try {
     const body = await request.json()

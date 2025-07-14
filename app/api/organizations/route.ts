@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   // Fetch organizations and their associated profiles
   const { data: organizations, error } = await supabase
     .from("organizations")
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { name, contact, industry, profile_ids } = await request.json()
 
   // Start a transaction (conceptual, as Supabase client doesn't have explicit transactions for multiple calls)

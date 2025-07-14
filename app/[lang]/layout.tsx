@@ -28,7 +28,7 @@ export default async function LocaleLayout({
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
   const dict = await getDictionary(lang)
 
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
   const { data: dataType, error } = await supabase.from("data_types").select("*").eq("id", id).single()
 
@@ -22,7 +22,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
   const { name, fields, organization_id } = await request.json()
 
@@ -50,7 +50,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { id } = params
 
   const { error } = await supabase.from("data_types").delete().eq("id", id)

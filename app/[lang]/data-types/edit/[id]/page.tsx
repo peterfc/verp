@@ -13,7 +13,7 @@ interface PageProps {
 export default async function EditDataTypePage({ params }: PageProps) {
   const { lang, id } = params
   const cookieStore = await cookies()
-  const supabase = await createServerClient(cookieStore)
+  const supabase = await await createServerClient();
 
   // Get current user and check permissions
   const {

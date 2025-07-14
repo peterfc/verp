@@ -17,7 +17,7 @@ function explain(err: any): string {
 /* ────────────────────────────  LIST  ────────────────────────────── */
 export async function GET() {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
 
   /* 1️⃣  fetch data_types first */
   const { data: dataTypes, error: dtError } = await supabase
@@ -69,7 +69,7 @@ export async function GET() {
 /* ─────────────────────────── CREATE  ─────────────────────────────── */
 export async function POST(request: Request) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const { name, fields, organization_id } = await request.json()
 
   if (!name || !organization_id) {

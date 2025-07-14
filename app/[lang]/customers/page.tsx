@@ -321,6 +321,7 @@ export default function CustomersPage({ params: { lang } }: { params: { lang: "e
           profilesLabel: dict.customerForm.profilesLabel,
           saveChangesButton: dict.common.saveChanges,
           addCustomerButton: dict.common.add.replace("{itemType}", dict.customersPage.title.toLowerCase()),
+          addOrganizationButton: dict.common.add.replace("{itemType}", dict.organizationsPage.title.toLowerCase()),
           errorFetchingProfiles: dict.customerForm.errorFetchingProfiles,
           failedToLoadProfiles: dict.customerForm.failedToLoadProfiles,
           selectProfilesPlaceholder: dict.multiSelectProfiles.selectProfilesPlaceholder,

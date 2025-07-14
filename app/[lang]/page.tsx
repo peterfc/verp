@@ -9,7 +9,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: "
   const dict = await getDictionary(lang) // Fetch dictionary
 
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser()
