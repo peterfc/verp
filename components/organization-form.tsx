@@ -44,7 +44,6 @@ interface OrganizationFormProps {
     industryLabel: string
     profilesLabel: string
     saveChangesButton: string
-    addCustomerButton: string
     addOrganizationButton: string
     errorFetchingProfiles: string
     failedToLoadProfiles: string

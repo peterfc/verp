@@ -174,14 +174,19 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
       return
     }
 
-    const finalEntry: DynamicDataEntry = {
-      ...(entry || {}), // Preserve existing ID if editing
-      data_type_id: dataType.id,
-      organization_id: dataType.organization_id, // Ensure organization_id is passed
-      data: dataToSave,
+    if (entry) {
+      const finalEntry: DynamicDataEntry = {
+        ...(entry || {}), // Preserve existing ID if editing
+        data_type_id: dataType.id,
+        organization_id: dataType.organization_id, // Ensure organization_id is passed
+        data: dataToSave,
+      }
+      console.log("Calling onSave with:", finalEntry)
+      onSave(finalEntry)
+    } else {
+      console.log("Could not save entry, it is undefined")
     }
-    console.log("Calling onSave with:", finalEntry)
-    onSave(finalEntry)
+    
   }
 
   const getFieldType = (field: Field) => {
@@ -259,7 +264,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                     </label>
                   </div>
                 )}
-                {fieldType === "text" && (
+                {fieldType === "string" && (
                   <Textarea
                     id={field.name}
                     value={value || ""}
@@ -267,7 +272,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                     className={error ? "border-red-500" : ""}
                   />
                 )}
-                {fieldType === "Dropdown" && (
+                {fieldType === "dropdown" && (
                   <Select onValueChange={(val) => handleChange(field.name, val)} value={value || ""}>
                     <SelectTrigger className={cn(error && "border-red-500")}>
                       <SelectValue placeholder={`Select a ${field.name}`} />
@@ -319,7 +324,6 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                   <FileUpload
                     value={value}
                     onChange={(file) => handleChange(field.name, file)}
-                    onDelete={() => handleChange(field.name, null)}
                   />
                 )}
                 {fieldType === "reference" && (

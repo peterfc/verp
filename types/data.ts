@@ -29,18 +29,10 @@ export interface DataType {
 }
 
 export interface DynamicDataEntry {
-  id?: string // Optional for new entries
+  id: string // Optional for new entries
   data_type_id: string
   organization_id: string
   data: Record<string, any> // Dynamic data based on DataType fields
   created_at?: string
   updated_at?: string
-}
-
-export interface Customer {
-  id: string
-  name: string
-  contact: string
-  industry: string
-  profiles?: Profile[] // Joined profiles
 }

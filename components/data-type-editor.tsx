@@ -17,7 +17,7 @@ interface DataTypeEditorProps {
   dataType?: DataType
   organizations: Organization[]
   availableDataTypes: DataType[]
-  onSave: (dataType: { id?: string; name: string; fields: Field[]; organization_id: string }) => void
+  onSave: (dataType: DataType) => void
   onCancel: () => void
   dict: {
     editorTitle: string
@@ -148,7 +148,11 @@ const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
       return
     }
 
-    onSave({ id: dataType?.id, name, organization_id: organizationId, fields: cleaned })
+    if (dataType) {
+      onSave({ id: dataType.id, name, organization_id: organizationId, fields: cleaned })
+    } else {
+      console.log("Could not save data type, it is undefined")
+    }
   }
 
   // Determine field type, with fallback logic for dropdown detection

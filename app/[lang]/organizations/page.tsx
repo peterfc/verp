@@ -366,7 +366,6 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
           industryLabel: dict.organizationForm.industryLabel,
           profilesLabel: dict.organizationForm.profilesLabel,
           saveChangesButton: dict.common.saveChanges,
-          addCustomerButton: dict.common.add.replace("{itemType}", dict.customersPage.title.toLowerCase()),
           addOrganizationButton: dict.common.add.replace("{itemType}", dict.organizationsPage.title.toLowerCase()),
           errorFetchingProfiles: dict.organizationForm.errorFetchingProfiles,
           failedToLoadProfiles: dict.organizationForm.failedToLoadProfiles,
