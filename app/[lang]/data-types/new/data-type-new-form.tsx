@@ -18,8 +18,7 @@ interface DataType {
   organization?: { name: string }
 }
 
-interface DataTypeEditFormProps {
-  dataType: DataType
+interface DataTypeNewFormProps {
   organizations: Organization[]
   availableDataTypes: DataType[]
   lang: string
@@ -27,14 +26,7 @@ interface DataTypeEditFormProps {
   isManager: boolean
 }
 
-export function DataTypeEditForm({
-  dataType,
-  organizations,
-  availableDataTypes,
-  lang,
-  isAdmin,
-  isManager,
-}: DataTypeEditFormProps) {
+export function DataTypeNewForm({ organizations, availableDataTypes, lang, isAdmin, isManager }: DataTypeNewFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
@@ -52,12 +44,12 @@ export function DataTypeEditForm({
         // Fallback dictionary
         setDict({
           dataTypeEditor: {
-            editorTitle: "Edit Data Type",
-            editorDescription: "Make changes to the data type here.",
+            editorTitle: "Add Data Type",
+            editorDescription: "Create a new data type schema.",
             nameLabel: "Name",
             fieldsLabel: "Fields",
             organizationLabel: "Organization",
-            saveButton: "Save Changes",
+            saveButton: "Add Data Type",
             cancelButton: "Cancel",
             invalidJson: "Invalid JSON",
             noOrganizationSelected: "Please select an organization.",
@@ -86,37 +78,37 @@ export function DataTypeEditForm({
     loadDictionary()
   }, [lang])
 
-  const handleSave = async (updatedDataType: any) => {
+  const handleSave = async (newDataType: any) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/data-types/${dataType.id}`, {
-        method: "PUT",
+      const response = await fetch("/api/data-types", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: updatedDataType.name,
-          fields: updatedDataType.fields,
-          organization_id: updatedDataType.organization_id,
+          name: newDataType.name,
+          fields: newDataType.fields,
+          organization_id: newDataType.organization_id,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update data type")
+        throw new Error(errorData.error || "Failed to create data type")
       }
 
       toast({
         title: "Success",
-        description: "Data type updated successfully.",
+        description: "Data type created successfully.",
       })
 
       router.push(`/${lang}/data-types`)
     } catch (error: any) {
-      console.error("Error updating data type:", error)
+      console.error("Error creating data type:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to update data type.",
+        description: error.message || "Failed to create data type.",
         variant: "destructive",
       })
     } finally {
@@ -135,7 +127,6 @@ export function DataTypeEditForm({
   return (
     <div className="container mx-auto py-6">
       <DataTypeEditor
-        dataType={dataType}
         organizations={organizations}
         availableDataTypes={availableDataTypes}
         onSave={handleSave}

@@ -1,17 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { put } from "@vercel/blob"
+import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const supabase = await createServerClient()
+    const cookieStore = await cookies()
+    const supabase = await createServerClient(cookieStore)
+
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser()
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -23,9 +25,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024 // 10MB
+    const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
-      return NextResponse.json({ error: "File size must be less than 10MB" }, { status: 400 })
+      return NextResponse.json({ error: "File too large" }, { status: 400 })
     }
 
     // Validate file type (basic security check)
@@ -66,6 +68,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Upload error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { DynamicDataEntryForm } from "@/components/dynamic-data-entry-form" // Import the new DynamicDataEntryForm
-import { DeleteDialog } from "@/components/delete-dialog" // For deleting entries
+import { DynamicDataEntryForm } from "@/components/dynamic-data-entry-form"
+import { DeleteDialog } from "@/components/delete-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,12 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
-import type { User } from "@supabase/supabase-js" // Import User type
+import type { User } from "@supabase/supabase-js"
 
 interface Field {
   name: string
   type: string
-  options?: string[] // Corrected to string[]
+  options?: string[]
+  referenceDataTypeId?: string
 }
 
 interface DataType {
@@ -80,9 +81,8 @@ export default function DynamicDataPage({
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
+
   // Local "never-undefined" helper.
-  // If dict or dict.dynamicDataPage are missing we fall back to
-  // the minimal strings below, avoiding runtime crashes.
   const dynamicDictDefaults = {
     title: "Data Entries",
     loadingEntries: "Loading entries...",
@@ -95,11 +95,11 @@ export default function DynamicDataPage({
     noEntriesFound: "No entries yet.",
   }
 
-  // Whenever we need the dynamic-data-page copy, read from this merged object.
   const dynamicDict = {
     ...dynamicDictDefaults,
     ...(dict?.dynamicDataPage ?? {}),
   }
+
   const [dataType, setDataType] = useState<DataType | undefined>(undefined)
   const [dataEntries, setDataEntries] = useState<DynamicDataEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,9 +109,12 @@ export default function DynamicDataPage({
   const [entryToDelete, setEntryToDelete] = useState<DynamicDataEntry | undefined>(undefined)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null) // State to hold current user
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   const supabase = createBrowserClient()
+
+  // Add this log to check initial state on render
+  console.log("DynamicDataPage rendered. Initial isFormOpen:", isFormOpen, "editingEntry:", editingEntry)
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -120,7 +123,7 @@ export default function DynamicDataPage({
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      setCurrentUser(user) // Set the current user
+      setCurrentUser(user)
 
       if (user) {
         const { data: userProfile, error } = await supabase.from("profiles").select("type").eq("id", user.id).single()
@@ -163,8 +166,8 @@ export default function DynamicDataPage({
             noEntriesFound: "No entries found for this data type.",
           },
           dynamicDataEntryForm: {
-            editorTitle: "Edit Data Entry",
-            editorDescription: "Enter data for this type.",
+            formTitle: "Data Entry Form",
+            formDescription: "Enter data for this type.",
             saveButton: "Save Entry",
             cancelButton: "Cancel",
             invalidInput: "Invalid Input",
@@ -200,6 +203,8 @@ export default function DynamicDataPage({
       const dataTypeResponse = await fetch(`/api/data-types/${dataTypeId}`)
       if (!dataTypeResponse.ok) throw new Error("Failed to fetch data type schema")
       const dataTypeData: DataType = await dataTypeResponse.json()
+
+      console.log("Fetched data type:", dataTypeData)
       setDataType(dataTypeData)
 
       // Fetch the actual data entries for this data type
@@ -227,60 +232,81 @@ export default function DynamicDataPage({
     }
   }, [fetchData, dict])
 
+  // --- helpers --------------------------------------------------------------
+  function safeStringify(obj: unknown) {
+    try {
+      return JSON.stringify(obj)
+    } catch {
+      return JSON.stringify(null)
+    }
+  }
+
   const handleSaveEntry = async (entryData: DynamicDataEntry) => {
     try {
-      let response: Response
-      if (entryData.id) {
-        // Existing entry: PUT request
-        response = await fetch(`/api/dynamic-data-entries/${entryData.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: entryData.data }), // Only send 'data' for update
-        })
-      } else {
-        // New entry: POST request
-        response = await fetch("/api/dynamic-data-entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            data_type_id: dataTypeId,
+      console.log("handleSaveEntry called with:", entryData)
+
+      // Never send undefined; Supabase will reject it.
+      // Send the minimal payload the API expects
+      const isEdit = Boolean(entryData.id)
+
+      const payload = isEdit
+        ? { data: entryData.data ?? {} } // PUT
+        : {
+            data_type_id: dataTypeId, // POST
             organization_id: organizationId,
-            data: entryData.data,
-          }),
-        })
-      }
+            data: entryData.data ?? {},
+          }
+
+      const [method, url] = isEdit
+        ? (["PUT", `/api/dynamic-data-entries/${entryData.id}`] as const)
+        : (["POST", "/api/dynamic-data-entries"] as const)
+
+      console.log(`Making ${method} request to ${url} with payload:`, payload)
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: safeStringify(payload),
+      })
+
+      console.log("Response status:", response.status, response.statusText)
 
       if (!response.ok) {
-        let message = dynamicDict.failedToSaveEntry || "Failed to save data entry."
-        try {
-          const maybeJson = await response.clone().json()
-          if (maybeJson?.error && String(maybeJson.error).trim()) {
-            message = maybeJson.error
-          } else if (response.statusText.trim()) {
-            message = response.statusText
-          } else {
-            message = `HTTP ${response.status} error`
+        // ---------- robust error extraction ----------
+        let message = dynamicDict.failedToSaveEntry || `HTTP ${response.status} ${response.statusText}`
+
+        const ct = response.headers.get("content-type") ?? ""
+        if (ct.includes("application/json")) {
+          try {
+            const j = await response.clone().json()
+            if (j?.error) message = String(j.error)
+          } catch {
+            /* swallow JSON parse errors */
           }
-        } catch {
-          message = response.statusText.trim() || `HTTP ${response.status} error`
+        } else {
+          const txt = await response.clone().text()
+          if (txt.trim()) message = txt.trim()
         }
         throw new Error(message)
       }
 
+      const responseData = await response.json()
+      console.log("Response data:", responseData)
+
       toast({
-        title: dict?.common.success || "Success",
-        description: dynamicDict.entrySaved || "Data entry saved successfully.",
+        title: dict?.common.success ?? "Success",
+        description: dynamicDict.entrySaved ?? "Saved",
       })
-      fetchData() // Re-fetch data to update the list
+      await fetchData()
       setIsFormOpen(false)
       setEditingEntry(undefined)
     } catch (err: any) {
       toast({
-        title: dict?.common.error || "Error",
-        description: err.message || "Failed to save data entry.",
+        title: dict?.common.error ?? "Error",
+        description: err?.message ?? "Failed to save",
         variant: "destructive",
       })
-      console.error(err)
+      console.error("handleSaveEntry error:", err)
     }
   }
 
@@ -310,7 +336,7 @@ export default function DynamicDataPage({
         title: dict?.common.success || "Success",
         description: dynamicDict.entryDeleted || "Data entry deleted successfully.",
       })
-      fetchData() // Re-fetch data to update the list
+      fetchData()
       setIsDeleteDialogOpen(false)
       setEntryToDelete(undefined)
     } catch (err: any) {
@@ -324,6 +350,7 @@ export default function DynamicDataPage({
   }
 
   const openEditForm = (entry: DynamicDataEntry) => {
+    console.log("Opening edit form with entry:", entry)
     setEditingEntry(entry)
     setIsFormOpen(true)
   }
@@ -341,7 +368,7 @@ export default function DynamicDataPage({
   const renderCellValue = (field: Field, value: any) => {
     if (value === null || value === undefined) return "N/A"
 
-    switch (field.type.toLowerCase()) {
+    switch (field.type) {
       case "boolean":
         return String(value)
       case "json":
@@ -379,7 +406,7 @@ export default function DynamicDataPage({
   // Determine if actions are allowed (admins/managers)
   const canManageData = isAdmin || isManager
   // Determine if adding new entries is allowed (any authenticated user)
-  const canAddData = !!currentUser // True if currentUser is not null
+  const canAddData = !!currentUser
 
   return (
     <div className="grid gap-6">
@@ -454,7 +481,7 @@ export default function DynamicDataPage({
       {isFormOpen && (
         <DynamicDataEntryForm
           dataType={dataType}
-          initialData={editingEntry}
+          entry={editingEntry}
           onSave={handleSaveEntry}
           onCancel={handleCancelForm}
           dict={dict.dynamicDataEntryForm}
@@ -466,8 +493,8 @@ export default function DynamicDataPage({
           isOpen={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
           onConfirm={handleDeleteEntry}
-          itemType="data entry" // Hardcoded for now, can be dynamic
-          itemName={entryToDelete.id} // Use ID or a representative field
+          itemType="data entry"
+          itemName={entryToDelete.id}
           dict={{
             confirmTitle: dict.common.confirmDeletion,
             confirmDescription: dict.common.confirmDeletionDescription,

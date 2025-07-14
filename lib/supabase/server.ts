@@ -1,40 +1,27 @@
-/**
- * Server-side Supabase helper
- *
- * Usage (Server Components, Route Handlers, Server Actions, middleware):
- *
- *   import { createServerClient } from "@/lib/supabase/server";
- *   const supabase = createServerClient();
- *
- * You can also pass an existing cookie store:
- *
- *   const supabase = createServerClient(cookies());
- */
+import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
-import { createServerClient as createSSRClient } from "@supabase/ssr"
-import { cookies as getCookies } from "next/headers"
-import type { SupabaseClient } from "@supabase/supabase-js"
+export function createServerClient() {
+  const cookieStore = cookies()
 
-/**
- * Returns a ready-to-use server-side Supabase client.
- *
- * @param cookieStore - optional cookie store from `next/headers`
- */
-export function createServerClient(cookieStore: ReturnType<typeof getCookies> = getCookies()): SupabaseClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-  return createSSRClient(supabaseUrl, supabaseAnon, {
+  return createSupabaseServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     cookies: {
-      get: (name: string) => cookieStore.get(name)?.value,
-      set: (name: string, value: string, options: any) => cookieStore.set({ name, value, ...options }),
-      remove: (name: string, options: any) => cookieStore.set({ name, value: "", ...options }),
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
     },
   })
 }
 
-/* ───────────── Aliases for backward compatibility ───────────── */
+// Export aliases for backward compatibility
 export const createClient = createServerClient
 export const createSupabaseClient = createServerClient
-
-export default createServerClient

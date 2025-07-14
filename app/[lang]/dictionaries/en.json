@@ -156,10 +156,13 @@
       "date": "Date",
       "json": "JSON",
       "dropdown": "Dropdown",
-      "file": "File"
+      "file": "File",
+      "reference": "Reference"
     },
     "dropdownOptionsLabel": "Dropdown Options",
-    "dropdownOptionsPlaceholder": "e.g., Option 1, Option 2, Option 3"
+    "dropdownOptionsPlaceholder": "e.g., Option 1, Option 2, Option 3",
+    "referenceDataTypeLabel": "Reference Data Type",
+    "referenceDataTypePlaceholder": "Select a data type to reference"
   },
   "dynamicDataPage": {
     "title": "Data Entries for {dataTypeName}",

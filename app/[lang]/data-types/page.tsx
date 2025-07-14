@@ -87,7 +87,6 @@ export default function DataTypesPage({ params: { lang } }: { params: { lang: "e
             dataTypeDeleted: "Data Type deleted successfully.",
             failedToSaveDataType: "Failed to save data type.",
             failedToDeleteDataType: "Failed to delete data type.",
-            fields: "Fields",
             organization: "Organization",
           },
           dataTypeForm: {

@@ -156,10 +156,13 @@
       "date": "Fecha",
       "json": "JSON",
       "dropdown": "Desplegable",
-      "file": "Archivo"
+      "file": "Archivo",
+      "reference": "Referencia"
     },
     "dropdownOptionsLabel": "Opciones de Desplegable",
-    "dropdownOptionsPlaceholder": "ej., Opción 1, Opción 2, Opción 3"
+    "dropdownOptionsPlaceholder": "ej., Opción 1, Opción 2, Opción 3",
+    "referenceDataTypeLabel": "Tipo de Dato de Referencia",
+    "referenceDataTypePlaceholder": "Selecciona un tipo de dato para referenciar"
   },
   "dynamicDataPage": {
     "title": "Entradas de Datos para {dataTypeName}",

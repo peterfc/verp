@@ -1,49 +1,68 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface DeleteDialogProps {
-  isOpen: boolean
+  // Allow both 'open' and 'isOpen' for flexibility
+  open?: boolean
+  isOpen?: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   itemType: string
   itemName: string
-  dict: {
-    // Add dictionary prop
-    confirmTitle: string
-    confirmDescription: string
-    cancelButton: string
-    deleteButton: string
+  dict?: {
+    confirmTitle?: string
+    confirmDescription?: string
+    cancelButton?: string
+    deleteButton?: string
   }
+  title?: string // Allow direct title prop
+  description?: string // Allow direct description prop
 }
 
-export function DeleteDialog({ isOpen, onOpenChange, onConfirm, itemType, itemName, dict }: DeleteDialogProps) {
+export function DeleteDialog({
+  open,
+  isOpen,
+  onOpenChange,
+  onConfirm,
+  itemType,
+  itemName,
+  dict,
+  title,
+  description,
+}: DeleteDialogProps) {
+  const effectiveOpen = open ?? isOpen // Use whichever prop is provided
+
+  // Fallback to default strings if dict or specific keys are undefined
+  const confirmTitle = title || dict?.confirmTitle || `Confirm Deletion of ${itemType}`
+  const confirmDescription =
+    description ||
+    dict?.confirmDescription ||
+    `Are you sure you want to delete "${itemName}"? This action cannot be undone.`
+  const cancelButtonText = dict?.cancelButton || "Cancel"
+  const deleteButtonText = dict?.deleteButton || "Delete"
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{dict.confirmTitle}</DialogTitle>
-          <DialogDescription>
-            {dict.confirmDescription.replace("{itemType}", itemType).replace("{itemName}", itemName)}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {dict.cancelButton}
-          </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            {dict.deleteButton}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={effectiveOpen} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{confirmDescription}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{cancelButtonText}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{deleteButtonText}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

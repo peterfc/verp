@@ -1,148 +1,69 @@
-"use client"
+import { notFound } from "next/navigation"
+import { cookies } from "next/headers"
+import { createServerClient } from "@/lib/supabase/server"
+import { DataTypeNewForm } from "./data-type-new-form"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { DataTypeEditor } from "@/components/data-type-editor"
-import { useToast } from "@/hooks/use-toast"
-import { createBrowserClient } from "@/lib/supabase/client"
-
-interface Organization {
-  id: string
-  name: string
+interface PageProps {
+  params: {
+    lang: string
+  }
 }
 
-export default function NewDataTypePage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [dict, setDict] = useState<any>(null)
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isManager, setIsManager] = useState(false)
-  const supabase = createBrowserClient()
+export default async function NewDataTypePage({ params }: PageProps) {
+  const { lang } = params
+  const cookieStore = await cookies()
+  const supabase = await createServerClient(cookieStore)
 
-  useEffect(() => {
-    const fetchUserAndProfile = async () => {
-      if (!supabase) return
+  // Get current user and check permissions
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data: profile, error } = await supabase.from("profiles").select("type").eq("id", user.id).single()
-        if (error) {
-          console.error("Error fetching user profile type:", error)
-        } else if (profile) {
-          setIsAdmin(profile.type === "Administrator")
-          setIsManager(profile.type === "Manager")
-        }
-      }
-    }
-    fetchUserAndProfile()
-  }, [supabase])
-
-  useEffect(() => {
-    const loadDictionaryAndOrganizations = async () => {
-      try {
-        const dictResponse = await fetch(`/api/dictionaries/data-types/${lang}`)
-        if (!dictResponse.ok) throw new Error("Failed to fetch data types dictionary")
-        const dictData = await dictResponse.json()
-        setDict(dictData)
-
-        const orgResponse = await fetch("/api/organizations")
-        if (!orgResponse.ok) throw new Error("Failed to fetch organizations")
-        const orgData: Organization[] = await orgResponse.json()
-        setOrganizations(orgData)
-      } catch (err: any) {
-        console.error(err)
-        toast({
-          title: dict?.common.error || "Error",
-          description: err.message || "Failed to load page data.",
-          variant: "destructive",
-        })
-        // Fallback dictionary if fetch fails
-        setDict({
-          dataTypeEditor: {
-            editorTitle: "Add Data Type",
-            editorDescription: "Add a new data type to your list.",
-            nameLabel: "Name",
-            fieldsLabel: "Fields (JSON)",
-            organizationLabel: "Organization",
-            saveButton: "Add Data Type",
-            cancelButton: "Cancel",
-            invalidJson: "Invalid JSON",
-            noOrganizationSelected: "No organization selected",
-            noOrganizationsFound: "No organizations found",
-          },
-          common: {
-            error: "Error",
-            success: "Success",
-          },
-          dataTypesPage: {
-            dataTypeSaved: "Data Type saved successfully.",
-          },
-        })
-      }
-    }
-    loadDictionaryAndOrganizations()
-  }, [lang, toast])
-
-  const handleSave = async (dataTypeData: { name: string; fields: any; organization_id: string }) => {
-    try {
-      const response = await fetch("/api/data-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataTypeData),
-      })
-
-      if (!response.ok) {
-        let message = dict?.dataTypesPage.failedToSaveDataType || "Failed to save data type."
-        try {
-          const maybeJson = await response.clone().json()
-          if (maybeJson?.error && String(maybeJson.error).trim()) {
-            message = maybeJson.error
-          } else if (response.statusText.trim()) {
-            message = response.statusText
-          } else {
-            message = `HTTP ${response.status} error`
-          }
-        } catch {
-          message = response.statusText.trim() || `HTTP ${response.status} error`
-        }
-        throw new Error(message)
-      }
-
-      toast({
-        title: dict?.common.success || "Success",
-        description: dict?.dataTypesPage.dataTypeSaved || "Data Type saved successfully.",
-      })
-      router.push(`/${lang}/data-types`)
-    } catch (err: any) {
-      toast({
-        title: dict?.common.error || "Error",
-        description: err.message || "Failed to save data type.",
-        variant: "destructive",
-      })
-      console.error(err)
-    }
+  if (!user) {
+    notFound()
   }
 
-  const handleCancel = () => {
-    router.push(`/${lang}/data-types`)
+  // Get user profile to check permissions
+  const { data: userProfile } = await supabase.from("profiles").select("type").eq("id", user.id).single()
+
+  const isAdmin = userProfile?.type === "Administrator"
+  const isManager = userProfile?.type === "Manager"
+
+  if (!isAdmin && !isManager) {
+    notFound()
   }
 
-  if (!dict) return null // Don't render until dictionary is loaded
+  // Fetch organizations
+  const { data: organizations } = await supabase.from("organizations").select("id, name").order("name")
+
+  // Fetch all available data types for reference fields
+  const { data: availableDataTypes } = await supabase
+    .from("data_types")
+    .select(`
+      id,
+      name,
+      organization_id,
+      organizations!inner(name)
+    `)
+    .order("name")
+
+  // Transform the data to match expected format
+  const transformedDataTypes =
+    availableDataTypes?.map((dt) => ({
+      id: dt.id,
+      name: dt.name,
+      fields: [],
+      organization_id: dt.organization_id,
+      organization: { name: dt.organizations.name },
+    })) || []
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
-      <DataTypeEditor
-        organizations={organizations}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        dict={dict.dataTypeEditor}
-        isAdmin={isAdmin}
-        isManager={isManager}
-      />
-    </div>
+    <DataTypeNewForm
+      organizations={organizations || []}
+      availableDataTypes={transformedDataTypes}
+      lang={lang}
+      isAdmin={isAdmin}
+      isManager={isManager}
+    />
   )
 }
