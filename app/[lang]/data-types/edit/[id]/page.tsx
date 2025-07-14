@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 import { DataTypeEditForm } from "./data-type-edit-form"
-import type { DataType } from "@/types/data" // Import DataType and Field from centralized types
+import type { DataType, Organization } from "@/types/data" // Import DataType and Organization from centralized types
 
 interface PageProps {
   params: {
@@ -20,8 +19,8 @@ interface RawDataTypeFromSupabase {
 }
 
 export default async function EditDataTypePage({ params }: PageProps) {
-  const { lang, id } = params;
-  const supabase = await createServerClient();
+  const { lang, id } = params
+  const supabase = await createServerClient()
 
   // Get current user and check permissions
   const {
@@ -49,8 +48,16 @@ export default async function EditDataTypePage({ params }: PageProps) {
     notFound()
   }
 
-  // Fetch organizations
-  const { data: organizations } = await supabase.from("organizations").select("id, name").order("name")
+  // Fetch organizations, including contact and industry
+  const { data: organizations, error: organizationsError } = await supabase
+    .from("organizations")
+    .select("id, name, contact, industry") // Added contact and industry
+    .order("name")
+
+  if (organizationsError) {
+    console.error("Error fetching organizations:", organizationsError)
+    // Handle error appropriately
+  }
 
   // Fetch all available data types for reference fields (excluding the current one)
   const { data: availableDataTypes, error: availableDataTypesError } = (await supabase
@@ -82,7 +89,7 @@ export default async function EditDataTypePage({ params }: PageProps) {
   return (
     <DataTypeEditForm
       dataType={dataType}
-      organizations={organizations || []}
+      organizations={(organizations || []) as Organization[]} // Cast to Organization[]
       availableDataTypes={transformedDataTypes}
       lang={lang}
       isAdmin={isAdmin}

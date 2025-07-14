@@ -1,205 +1,305 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { MultiSelectProfiles } from "./multi-select-profiles"
-import { useToast } from "@/hooks/use-toast"
-import type { Profile } from "@/types/data" // Import Profile from types/data
+import { MultiSelectProfiles } from "@/components/multi-select-profiles"
+import { DeleteDialog } from "@/components/delete-dialog"
+import { createClient } from "@/lib/supabase/client"
+import type { Organization, Profile } from "@/types/data" // Import types from centralized file
 
 interface OrganizationFormProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  organization?: { id: string; name: string; contact: string; industry: string; profiles?: Profile[] }
-  onSave: (organization: {
-    id?: string
-    name: string
-    contact: string
-    industry: string
-    profile_ids: string[]
-  }) => void
+  organization?: Organization // Optional for new organizations
+  profiles: Profile[] // All available profiles
   dict: {
-    editTitle: string
-    addTitle: string
-    editDescription: string
-    addDescription: string
     nameLabel: string
+    namePlaceholder: string
     contactLabel: string
+    contactPlaceholder: string
     industryLabel: string
+    industryPlaceholder: string
     profilesLabel: string
-    saveChangesButton: string
-    addOrganizationButton: string
-    errorFetchingProfiles: string
-    failedToLoadProfiles: string
     selectProfilesPlaceholder: string
     searchProfilesPlaceholder: string
     noProfilesFound: string
+    saveButton: string
+    savingButton: string
+    cancelButton: string
+    deleteButton: string
+    deletingButton: string
+    confirmDeleteTitle: string
+    confirmDeleteDescription: string
+    deleteSuccess: string
+    deleteError: string
+    saveSuccess: string
+    saveError: string
   }
-  isAdmin: boolean // New prop
-  isManager: boolean // New prop
+  lang: string
+  isAdmin: boolean
+  isManager: boolean
 }
 
-export function OrganizationForm({
-  isOpen,
-  onOpenChange,
-  organization,
-  onSave,
-  dict,
-  isAdmin,
-  isManager,
-}: OrganizationFormProps) {
-  const [name, setName] = useState(organization?.name || "")
-  const [contact, setContact] = useState(organization?.contact || "")
-  const [industry, setIndustry] = useState(organization?.industry || "")
-  const [allProfiles, setAllProfiles] = useState<Profile[]>([])
-  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([])
-  const { toast } = useToast()
+const formSchema = z.object({
+  name: z.string().min(1, { message: "Organization name is required." }),
+  contact: z.string().min(1, { message: "Contact information is required." }),
+  industry: z.string().min(1, { message: "Industry is required." }),
+  profile_ids: z.array(z.string().uuid()).optional(), // Array of profile IDs
+})
 
-  // Determine if the form should be disabled
-  // It's enabled if:
-  // 1. Current user is an Admin
-  // 2. Current user is a Manager AND an existing organization is being edited
-  //    (Managers can only edit existing associated organizations, not create new ones)
-  const isFormDisabled = !isAdmin && (!isManager || !organization)
+export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, isManager }: OrganizationFormProps) {
+  const router = useRouter()
+  const supabase = createClient()
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: organization?.name || "",
+      contact: organization?.contact || "",
+      industry: organization?.industry || "",
+      profile_ids: organization?.profiles?.map((p) => p.id) || [],
+    },
+  })
 
   useEffect(() => {
-    if (isOpen) {
-      const fetchAllProfiles = async () => {
-        try {
-          const response = await fetch("/api/profiles")
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          const data: Profile[] = await response.json()
-          setAllProfiles(data)
-        } catch (err: any) {
-          toast({
-            title: dict.errorFetchingProfiles,
-            description: err.message || dict.failedToLoadProfiles,
-            variant: "destructive",
+    form.reset({
+      name: organization?.name || "",
+      contact: organization?.contact || "",
+      industry: organization?.industry || "",
+      profile_ids: organization?.profiles?.map((p) => p.id) || [],
+    })
+  }, [organization, form])
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSaving(true)
+    try {
+      if (organization) {
+        // Update existing organization
+        const { error } = await supabase
+          .from("organizations")
+          .update({
+            name: values.name,
+            contact: values.contact,
+            industry: values.industry,
           })
-          console.error(err)
+          .eq("id", organization.id)
+
+        if (error) throw error
+
+        // Update organization_profiles
+        // First, get current associations
+        const { data: currentAssociations, error: fetchError } = await supabase
+          .from("organization_profiles")
+          .select("profile_id")
+          .eq("organization_id", organization.id)
+
+        if (fetchError) throw fetchError
+
+        const currentProfileIds = new Set(currentAssociations?.map((a) => a.profile_id))
+        const newProfileIds = new Set(values.profile_ids)
+
+        const profilesToAdd = Array.from(newProfileIds).filter((id) => !currentProfileIds.has(id))
+        const profilesToRemove = Array.from(currentProfileIds).filter((id) => !newProfileIds.has(id))
+
+        if (profilesToAdd.length > 0) {
+          const { error: insertError } = await supabase
+            .from("organization_profiles")
+            .insert(profilesToAdd.map((profile_id) => ({ organization_id: organization.id, profile_id })))
+          if (insertError) throw insertError
+        }
+
+        if (profilesToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from("organization_profiles")
+            .delete()
+            .eq("organization_id", organization.id)
+            .in("profile_id", profilesToRemove)
+          if (deleteError) throw deleteError
+        }
+      } else {
+        // Create new organization
+        const { data, error } = await supabase
+          .from("organizations")
+          .insert({
+            name: values.name,
+            contact: values.contact,
+            industry: values.industry,
+          })
+          .select()
+          .single()
+
+        if (error) throw error
+
+        if (values.profile_ids && values.profile_ids.length > 0) {
+          const { error: profileInsertError } = await supabase
+            .from("organization_profiles")
+            .insert(values.profile_ids.map((profile_id) => ({ organization_id: data.id, profile_id })))
+          if (profileInsertError) throw profileInsertError
         }
       }
-      fetchAllProfiles()
-    }
-  }, [isOpen, toast, dict])
 
-  useEffect(() => {
-    if (organization) {
-      setName(organization.name)
-      setContact(organization.contact)
-      setIndustry(organization.industry)
-      setSelectedProfileIds(
-        (organization.profiles ?? []).filter((p): p is Profile => Boolean(p && p.id)).map((p) => p.id),
-      )
-    } else {
-      setName("")
-      setContact("")
-      setIndustry("")
-      setSelectedProfileIds([])
-    }
-  }, [organization, isOpen])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isFormDisabled) {
-      // Prevent submission if disabled
       toast({
-        title: dict.addTitle,
-        description: "You do not have permission to edit organizations.",
+        title: "Success!",
+        description: dict.saveSuccess,
+      })
+      router.push(`/${lang}/organizations`)
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || dict.saveError,
         variant: "destructive",
       })
-      return
+    } finally {
+      setIsSaving(false)
     }
-    onSave({ id: organization?.id, name, contact, industry, profile_ids: selectedProfileIds })
-    onOpenChange(false)
   }
 
+  async function handleDelete() {
+    setIsDeleting(true)
+    try {
+      if (!organization?.id) {
+        throw new Error("Organization ID is missing for deletion.")
+      }
+      const { error } = await supabase.from("organizations").delete().eq("id", organization.id)
+
+      if (error) {
+        throw error
+      }
+
+      toast({
+        title: "Success!",
+        description: dict.deleteSuccess,
+      })
+      router.push(`/${lang}/organizations`)
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || dict.deleteError,
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
+  const isFormDisabled = !isAdmin && !isManager
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{organization ? dict.editTitle : dict.addTitle}</DialogTitle>
-          <DialogDescription>{organization ? dict.editDescription : dict.addDescription}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              {dict.nameLabel}
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
-              required
-              disabled={isFormDisabled}
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>{organization ? "Edit Organization" : "New Organization"}</CardTitle>
+        <CardDescription>
+          {organization ? "Manage the details of your organization." : "Create a new organization."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.nameLabel}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={dict.namePlaceholder} {...field} disabled={isFormDisabled} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="contact" className="text-right">
-              {dict.contactLabel}
-            </Label>
-            <Input
-              id="contact"
-              type="email"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              className="col-span-3"
-              required
-              disabled={isFormDisabled}
+            <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.contactLabel}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={dict.contactPlaceholder} {...field} disabled={isFormDisabled} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="industry" className="text-right">
-              {dict.industryLabel}
-            </Label>
-            <Input
-              id="industry"
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              className="col-span-3"
-              required
-              disabled={isFormDisabled}
+            <FormField
+              control={form.control}
+              name="industry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.industryLabel}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={dict.industryPlaceholder} {...field} disabled={isFormDisabled} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="profiles" className="text-right">
-              {dict.profilesLabel}
-            </Label>
-            <div className="col-span-3">
-              <MultiSelectProfiles
-                profiles={allProfiles}
-                selectedProfileIds={selectedProfileIds}
-                onSelectionChange={setSelectedProfileIds}
-                dict={{
-                  selectProfilesPlaceholder: dict.selectProfilesPlaceholder,
-                  searchProfilesPlaceholder: dict.searchProfilesPlaceholder,
-                  noProfilesFound: dict.noProfilesFound,
-                }}
-                disabled={isFormDisabled} // Pass the disabled prop
-              />
+            <FormField
+              control={form.control}
+              name="profile_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{dict.profilesLabel}</FormLabel>
+                  <FormControl>
+                    <MultiSelectProfiles
+                      profiles={profiles}
+                      selectedProfileIds={field.value || []}
+                      onSelectionChange={field.onChange}
+                      dict={{
+                        selectProfilesPlaceholder: dict.selectProfilesPlaceholder,
+                        searchProfilesPlaceholder: dict.searchProfilesPlaceholder,
+                        noProfilesFound: dict.noProfilesFound,
+                      }}
+                      disabled={isFormDisabled}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSaving || isDeleting}>
+                {dict.cancelButton}
+              </Button>
+              <Button type="submit" disabled={isSaving || isDeleting || isFormDisabled}>
+                {isSaving ? dict.savingButton : dict.saveButton}
+              </Button>
+              {organization && (isAdmin || isManager) && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isSaving || isDeleting}
+                >
+                  {isDeleting ? dict.deletingButton : dict.deleteButton}
+                </Button>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={isFormDisabled}>
-              {organization ? dict.saveChangesButton : dict.addOrganizationButton}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </Form>
+      </CardContent>
+      <DeleteDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+        title={dict.confirmDeleteTitle}
+        description={dict.confirmDeleteDescription}
+        confirmText={dict.deleteButton}
+        cancelText={dict.cancelButton}
+        isConfirming={isDeleting}
+      />
+    </Card>
   )
 }
