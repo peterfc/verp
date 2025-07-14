@@ -1,8 +1,23 @@
+export interface Profile {
+  id: string
+  name: string
+  email: string
+  type: "Administrator" | "Manager" | "User"
+  organization_id: string | null
+  organizations?: { name: string } | null // Joined organization name
+}
+
+export interface Organization {
+  id: string
+  name: string
+}
+
 export interface Field {
   name: string
-  type: string
-  options?: string[] // For 'Dropdown' type
-  referenceDataTypeId?: string // For 'Reference' type
+  type: "string" | "number" | "boolean" | "date" | "json" | "dropdown" | "file" | "reference"
+  options?: string[] // For dropdowns
+  tempOptionsInput?: string // Temporary field for form input (comma-separated string)
+  referenceDataTypeId?: string // For reference fields, stores the ID of the data type being referenced
 }
 
 export interface DataType {
@@ -10,28 +25,14 @@ export interface DataType {
   name: string
   fields: Field[]
   organization_id: string
-  organization?: { name: string } // Optional, for display purposes
+  organization?: { name: string } // Joined organization name
 }
 
 export interface DynamicDataEntry {
-  id: string
+  id?: string // Optional for new entries
   data_type_id: string
   organization_id: string
-  data: Record<string, any> // Stores the actual dynamic data based on DataType fields
-  created_at: string | null // Can be null if not yet set or from a partial fetch
-  updated_at: string | null // Can be null if not yet set or from a partial fetch
-}
-
-export interface Profile {
-  id: string
-  name: string
-  email: string
-}
-
-export interface Customer {
-  id: string
-  name: string
-  contact: string
-  industry: string
-  profiles: Profile[]
+  data: Record<string, any> // Dynamic data based on DataType fields
+  created_at?: string
+  updated_at?: string
 }

@@ -5,17 +5,7 @@ import { useRouter } from "next/navigation"
 import { DataTypeEditor } from "@/components/data-type-editor"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
-
-interface Organization {
-  id: string
-  name: string
-}
-
-interface Field {
-  name: string
-  type: string
-  options?: string[]
-}
+import type { Organization, Field, DataType } from "@/types/data" // Import interfaces from types/data
 
 interface DataTypeFormProps {
   lang: string
@@ -26,6 +16,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [availableDataTypes, setAvailableDataTypes] = useState<DataType[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
@@ -90,9 +81,12 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
               json: "JSON",
               dropdown: "Dropdown",
               file: "File",
+              reference: "Reference",
             },
             dropdownOptionsLabel: "Dropdown Options",
             dropdownOptionsPlaceholder: "Enter options separated by commas (e.g., Option 1, Option 2, Option 3)",
+            referenceDataTypeLabel: "Reference Data Type",
+            referenceDataTypePlaceholder: "Select a data type to reference",
           },
           common: {
             loading: "Loading...",
@@ -106,19 +100,26 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
   }, [lang, toast])
 
   useEffect(() => {
-    const fetchOrganizations = async () => {
+    const fetchData = async () => {
       if (!dict) return
       setLoading(true)
       try {
+        // Fetch organizations
         const orgsResponse = await fetch("/api/organizations")
         if (!orgsResponse.ok) throw new Error("Failed to fetch organizations")
         const orgsData: Organization[] = await orgsResponse.json()
         setOrganizations(orgsData)
+
+        // Fetch available data types
+        const dataTypesResponse = await fetch("/api/data-types")
+        if (!dataTypesResponse.ok) throw new Error("Failed to fetch data types")
+        const dataTypesData: DataType[] = await dataTypesResponse.json()
+        setAvailableDataTypes(dataTypesData)
       } catch (err: any) {
         console.error(err)
         toast({
           title: dict?.common?.error || "Error",
-          description: err.message || "Failed to load organizations.",
+          description: err.message || "Failed to load data.",
           variant: "destructive",
         })
       } finally {
@@ -127,7 +128,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
     }
 
     if (dict) {
-      fetchOrganizations()
+      fetchData()
     }
   }, [dict, toast])
 
@@ -189,6 +190,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
     <div className="container mx-auto py-6">
       <DataTypeEditor
         organizations={organizations}
+        availableDataTypes={availableDataTypes}
         onSave={handleSave}
         onCancel={handleCancel}
         dict={dict.dataTypeEditor}
