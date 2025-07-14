@@ -10,28 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Minus } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-
-interface Organization {
-  id: string
-  name: string
-}
-
-interface DataType {
-  id: string
-  name: string
-  fields: Field[]
-  organization_id: string
-  organization?: { name: string }
-}
-
-interface Field {
-  name: string
-  type: string
-  options?: string[]
-  referenceDataTypeId?: string
-  /* raw textarea input for dropdown options – not saved to DB */
-  tempOptionsInput?: string
-}
+import type { Organization, DataType, Field } from "@/types/data" // Import interfaces from types/data
 
 interface DataTypeEditorProps {
   /* existing dataType when editing, otherwise undefined for "new" */

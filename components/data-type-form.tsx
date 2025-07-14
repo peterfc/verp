@@ -133,6 +133,7 @@ export function DataTypeForm({ lang }: DataTypeFormProps) {
   }, [dict, toast])
 
   const handleSave = async (newDataType: {
+    id?: string // Added optional id
     name: string
     fields: Field[]
     organization_id: string
