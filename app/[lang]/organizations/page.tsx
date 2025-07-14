@@ -18,20 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-
-interface Profile {
-  id: string
-  name: string
-  email: string
-}
-
-interface Organization {
-  id: string
-  name: string
-  contact: string
-  industry: string
-  profiles: Profile[]
-}
+import type { Organization, Profile } from "@/types/data" // Import Organization and Profile from types/data
 
 export default function OrganizationsPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -140,12 +127,31 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
     setLoading(true)
     setError(null)
     try {
+      // Explicitly define the expected structure for the fetched data
+      interface FetchedOrganization extends Omit<Organization, "profiles"> {
+        profiles: Array<Omit<Profile, "type" | "organization_id" | "organizations">> | null
+      }
+
       const response = await fetch("/api/organizations")
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const data: Organization[] = await response.json()
-      setOrganizations(data)
+      const data: FetchedOrganization[] = await response.json()
+
+      // Map the fetched data to the Organization interface, ensuring profiles are correctly typed
+      const mappedData: Organization[] = data.map((org) => ({
+        ...org,
+        profiles: (org.profiles || []).map((profile) => ({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          // Add default or null values for missing properties from the full Profile interface
+          type: "User", // Default type, as it's not fetched here
+          organization_id: null, // Default, as it's not fetched here
+          organizations: null, // Default, as it's not fetched here
+        })),
+      }))
+      setOrganizations(mappedData)
     } catch (err: any) {
       setError(err.message || dict?.organizationsPage.failedToFetchOrganizations || "Failed to fetch organizations.")
       toast({

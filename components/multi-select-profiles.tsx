@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-
-interface Profile {
-  id: string
-  name: string
-  email: string
-}
+import type { Profile } from "@/types/data" // Import Profile from types/data
 
 interface MultiSelectProfilesProps {
   profiles: Profile[]
