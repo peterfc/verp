@@ -233,7 +233,7 @@ const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
                       />
                       <Select
                         value={fieldType}
-                        onValueChange={(v) => updateField(i, { type: v })}
+                        onValueChange={(v) => updateField(i, { type: v as Field["type"] })} // Cast to specific union type
                         disabled={isFormDisabled}
                       >
                         <SelectTrigger className="w-[130px]">

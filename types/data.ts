@@ -36,3 +36,11 @@ export interface DynamicDataEntry {
   created_at?: string
   updated_at?: string
 }
+
+export interface Customer {
+  id: string
+  name: string
+  contact: string
+  industry: string
+  profiles?: Profile[] // Joined profiles
+}
