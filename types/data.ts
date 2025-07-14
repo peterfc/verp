@@ -21,3 +21,17 @@ export interface DynamicDataEntry {
   created_at: string | null // Can be null if not yet set or from a partial fetch
   updated_at: string | null // Can be null if not yet set or from a partial fetch
 }
+
+export interface Profile {
+  id: string
+  name: string
+  email: string
+}
+
+export interface Customer {
+  id: string
+  name: string
+  contact: string
+  industry: string
+  profiles: Profile[]
+}

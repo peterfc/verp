@@ -16,20 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
-
-interface Profile {
-  id: string
-  name: string
-  email: string
-}
-
-interface Customer {
-  id: string
-  name: string
-  contact: string
-  industry: string
-  profiles: Profile[]
-}
+import type { Customer } from "@/types/data" // Import Profile and Customer from shared types
 
 export default function CustomersPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [customers, setCustomers] = useState<Customer[]>([])
