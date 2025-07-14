@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 import { DataTypeEditForm } from "./data-type-edit-form"
+import type { DataType } from "@/types/data" // Import DataType and Field from centralized types
 
 interface PageProps {
   params: {
@@ -10,10 +11,18 @@ interface PageProps {
   }
 }
 
+// Define a type for the raw data returned from Supabase for availableDataTypes
+interface RawDataTypeFromSupabase {
+  id: string
+  name: string
+  organization_id: string
+  organizations: { name: string } | null // organizations can be null if no join match
+}
+
 export default async function EditDataTypePage({ params }: PageProps) {
   const { lang, id } = params
   const cookieStore = await cookies()
-  const supabase = await await createServerClient();
+  const supabase = await createServerClient()
 
   // Get current user and check permissions
   const {
@@ -45,7 +54,7 @@ export default async function EditDataTypePage({ params }: PageProps) {
   const { data: organizations } = await supabase.from("organizations").select("id, name").order("name")
 
   // Fetch all available data types for reference fields (excluding the current one)
-  const { data: availableDataTypes } = await supabase
+  const { data: availableDataTypes, error: availableDataTypesError } = (await supabase
     .from("data_types")
     .select(`
       id,
@@ -54,16 +63,21 @@ export default async function EditDataTypePage({ params }: PageProps) {
       organizations!inner(name)
     `)
     .neq("id", id)
-    .order("name")
+    .order("name")) as { data: RawDataTypeFromSupabase[] | null; error: any } // Cast to the raw type
+
+  if (availableDataTypesError) {
+    console.error("Error fetching available data types:", availableDataTypesError)
+    // Handle error appropriately, e.g., return empty array or throw
+  }
 
   // Transform the data to match expected format
-  const transformedDataTypes =
+  const transformedDataTypes: DataType[] =
     availableDataTypes?.map((dt) => ({
       id: dt.id,
       name: dt.name,
-      fields: [],
+      fields: [], // Fields are not needed for reference selection, so an empty array is fine
       organization_id: dt.organization_id,
-      organization: { name: dt.organizations.name },
+      organization: dt.organizations ? { name: dt.organizations.name } : undefined, // Safely access organization name
     })) || []
 
   return (
