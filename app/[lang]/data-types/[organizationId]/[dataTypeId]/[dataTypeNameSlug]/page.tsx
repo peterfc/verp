@@ -425,8 +425,8 @@ export default function DynamicDataPage({
                     {dataType.fields.map((field) => (
                       <TableCell key={field.name}>{renderCellValue(field, entry.data[field.name])}</TableCell>
                     ))}
-                    <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
-                    <TableCell>{new Date(entry.updated_at).toLocaleString()}</TableCell>
+                    <TableCell>{entry.created_at ? new Date(entry.created_at).toLocaleString() : "N/A"}</TableCell>
+                    <TableCell>{entry.updated_at ? new Date(entry.updated_at).toLocaleString() : "N/A"}</TableCell>
                     {canAddData && (
                       <TableCell className="text-right">
                         <DropdownMenu>
