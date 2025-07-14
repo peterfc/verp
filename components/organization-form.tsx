@@ -8,27 +8,38 @@ import * as z from "zod"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { MultiSelectProfiles } from "@/components/multi-select-profiles"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { createClient } from "@/lib/supabase/client"
-import type { Organization, Profile } from "@/types/data" // Import types from centralized file
+import type { Organization, Profile } from "@/types/data" // Import Organization and Profile types
 
 interface OrganizationFormProps {
-  organization?: Organization // Optional for new organizations
-  profiles: Profile[] // All available profiles
+  organization?: Organization
+  profiles: Profile[]
+  lang: string
   dict: {
+    // Properties passed from app/[lang]/organizations/page.tsx
+    editTitle: string
+    addTitle: string
+    editDescription: string
+    addDescription: string
     nameLabel: string
-    namePlaceholder: string
     contactLabel: string
-    contactPlaceholder: string
     industryLabel: string
-    industryPlaceholder: string
     profilesLabel: string
+    saveChangesButton: string
+    addOrganizationButton: string
+    errorFetchingProfiles: string
+    failedToLoadProfiles: string
     selectProfilesPlaceholder: string
     searchProfilesPlaceholder: string
     noProfilesFound: string
+    // Properties used internally by OrganizationForm
+    namePlaceholder: string
+    contactPlaceholder: string
+    industryPlaceholder: string
     saveButton: string
     savingButton: string
     cancelButton: string
@@ -36,24 +47,23 @@ interface OrganizationFormProps {
     deletingButton: string
     confirmDeleteTitle: string
     confirmDeleteDescription: string
-    deleteSuccess: string
-    deleteError: string
-    saveSuccess: string
-    saveError: string
+    successToastTitle: string
+    successToastDescription: string
+    errorToastTitle: string
+    errorToastDescription: string
   }
-  lang: string
   isAdmin: boolean
   isManager: boolean
 }
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Organization name is required." }),
-  contact: z.string().min(1, { message: "Contact information is required." }),
-  industry: z.string().min(1, { message: "Industry is required." }),
-  profile_ids: z.array(z.string().uuid()).optional(), // Array of profile IDs
+  contact: z.string().optional(),
+  industry: z.string().optional(),
+  profile_ids: z.array(z.string().uuid()).optional(),
 })
 
-export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, isManager }: OrganizationFormProps) {
+export function OrganizationForm({ organization, profiles, lang, dict, isAdmin, isManager }: OrganizationFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const [isSaving, setIsSaving] = useState(false)
@@ -92,6 +102,8 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
             industry: values.industry,
           })
           .eq("id", organization.id)
+          .select()
+          .single()
 
         if (error) throw error
 
@@ -104,16 +116,19 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
 
         if (fetchError) throw fetchError
 
-        const currentProfileIds = new Set(currentAssociations?.map((a) => a.profile_id))
-        const newProfileIds = new Set(values.profile_ids)
+        const currentProfileIds = currentAssociations?.map((assoc) => assoc.profile_id) || []
+        const newProfileIds = values.profile_ids || []
 
-        const profilesToAdd = Array.from(newProfileIds).filter((id) => !currentProfileIds.has(id))
-        const profilesToRemove = Array.from(currentProfileIds).filter((id) => !newProfileIds.has(id))
+        const profilesToAdd = newProfileIds.filter((id) => !currentProfileIds.includes(id))
+        const profilesToRemove = currentProfileIds.filter((id) => !newProfileIds.includes(id))
 
         if (profilesToAdd.length > 0) {
-          const { error: insertError } = await supabase
-            .from("organization_profiles")
-            .insert(profilesToAdd.map((profile_id) => ({ organization_id: organization.id, profile_id })))
+          const { error: insertError } = await supabase.from("organization_profiles").insert(
+            profilesToAdd.map((profile_id) => ({
+              organization_id: organization.id,
+              profile_id,
+            })),
+          )
           if (insertError) throw insertError
         }
 
@@ -140,23 +155,26 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
         if (error) throw error
 
         if (values.profile_ids && values.profile_ids.length > 0) {
-          const { error: profileInsertError } = await supabase
-            .from("organization_profiles")
-            .insert(values.profile_ids.map((profile_id) => ({ organization_id: data.id, profile_id })))
-          if (profileInsertError) throw profileInsertError
+          const { error: insertProfilesError } = await supabase.from("organization_profiles").insert(
+            values.profile_ids.map((profile_id) => ({
+              organization_id: data.id,
+              profile_id,
+            })),
+          )
+          if (insertProfilesError) throw insertProfilesError
         }
       }
 
       toast({
-        title: "Success!",
-        description: dict.saveSuccess,
+        title: dict.successToastTitle,
+        description: dict.successToastDescription,
       })
       router.push(`/${lang}/organizations`)
       router.refresh()
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || dict.saveError,
+        title: dict.errorToastTitle,
+        description: error.message || dict.errorToastDescription,
         variant: "destructive",
       })
     } finally {
@@ -167,25 +185,31 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
   async function handleDelete() {
     setIsDeleting(true)
     try {
-      if (!organization?.id) {
-        throw new Error("Organization ID is missing for deletion.")
-      }
-      const { error } = await supabase.from("organizations").delete().eq("id", organization.id)
+      if (organization) {
+        // Delete associated organization_profiles first
+        const { error: deleteAssociationsError } = await supabase
+          .from("organization_profiles")
+          .delete()
+          .eq("organization_id", organization.id)
 
-      if (error) {
-        throw error
-      }
+        if (deleteAssociationsError) throw deleteAssociationsError
 
-      toast({
-        title: "Success!",
-        description: dict.deleteSuccess,
-      })
-      router.push(`/${lang}/organizations`)
-      router.refresh()
+        // Then delete the organization
+        const { error } = await supabase.from("organizations").delete().eq("id", organization.id)
+
+        if (error) throw error
+
+        toast({
+          title: dict.successToastTitle,
+          description: dict.successToastDescription,
+        })
+        router.push(`/${lang}/organizations`)
+        router.refresh()
+      }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || dict.deleteError,
+        title: dict.errorToastTitle,
+        description: error.message || dict.errorToastDescription,
         variant: "destructive",
       })
     } finally {
@@ -197,12 +221,10 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
   const isFormDisabled = !isAdmin && !isManager
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-4xl">
       <CardHeader>
-        <CardTitle>{organization ? "Edit Organization" : "New Organization"}</CardTitle>
-        <CardDescription>
-          {organization ? "Manage the details of your organization." : "Create a new organization."}
-        </CardDescription>
+        <CardTitle>{organization ? dict.editTitle : dict.addTitle}</CardTitle>
+        <CardDescription>{organization ? dict.editDescription : dict.addDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -265,6 +287,7 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
                       disabled={isFormDisabled}
                     />
                   </FormControl>
+                  <FormDescription>Select profiles to associate with this organization.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -292,13 +315,16 @@ export function OrganizationForm({ organization, profiles, dict, lang, isAdmin, 
       </CardContent>
       <DeleteDialog
         isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
+        onOpenChange={setShowDeleteDialog}
         onConfirm={handleDelete}
-        title={dict.confirmDeleteTitle}
-        description={dict.confirmDeleteDescription}
-        confirmText={dict.deleteButton}
-        cancelText={dict.cancelButton}
-        isConfirming={isDeleting}
+        itemType="organization"
+        itemName={organization?.name || "this organization"}
+        dict={{
+          confirmTitle: dict.confirmDeleteTitle,
+          confirmDescription: dict.confirmDeleteDescription,
+          cancelButton: dict.cancelButton,
+          deleteButton: dict.deleteButton,
+        }}
       />
     </Card>
   )
