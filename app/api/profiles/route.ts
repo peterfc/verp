@@ -3,7 +3,6 @@ import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { data: profiles, error } = await supabase.from("profiles").select("*")
 
@@ -19,7 +18,6 @@ export async function GET() {
 // For an admin to create profiles, a separate admin-level API would be needed.
 // Keeping this route for consistency, but it won't be used by the current UI's "Add Profile"
 export async function POST(request: Request) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { name, email, type } = await request.json() // Destructure 'type'
 

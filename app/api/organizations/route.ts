@@ -3,7 +3,6 @@ import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   // Fetch organizations and their associated profiles
   const { data: organizations, error } = await supabase
@@ -26,7 +25,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { name, contact, industry, profile_ids } = await request.json()
 

@@ -8,7 +8,6 @@ import { createServerClient } from "@/lib/supabase/server" // Import server clie
 export default async function HomePage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const dict = await getDictionary(lang) // Fetch dictionary
 
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const {
     data: { user },

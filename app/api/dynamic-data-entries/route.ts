@@ -10,7 +10,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "dataTypeId is required" }, { status: 400 })
   }
 
-  const cookieStore = cookies()
   const supabase = await createServerClient();
 
   try {
@@ -33,7 +32,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
 
   try {

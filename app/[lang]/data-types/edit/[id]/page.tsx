@@ -20,9 +20,8 @@ interface RawDataTypeFromSupabase {
 }
 
 export default async function EditDataTypePage({ params }: PageProps) {
-  const { lang, id } = params
-  const cookieStore = await cookies()
-  const supabase = await createServerClient()
+  const { lang, id } = params;
+  const supabase = await createServerClient();
 
   // Get current user and check permissions
   const {

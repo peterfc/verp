@@ -3,7 +3,6 @@ import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { id } = params
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", id).single()
@@ -21,7 +20,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { id } = params
   const { name, email, type } = await request.json() // Destructure 'type'
@@ -41,7 +39,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const cookieStore = cookies()
   const supabase = await createServerClient();
   const { id } = params
 
