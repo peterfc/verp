@@ -4,19 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTypeEditor } from "@/components/data-type-editor"
 import { useToast } from "@/hooks/use-toast"
-
-interface Organization {
-  id: string
-  name: string
-}
-
-interface DataType {
-  id: string
-  name: string
-  fields: any[]
-  organization_id: string
-  organization?: { name: string }
-}
+import { DataType, Organization } from "@/types/data"
 
 interface DataTypeEditFormProps {
   dataType: DataType
