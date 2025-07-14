@@ -16,12 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { MultiSelectProfiles } from "./multi-select-profiles"
 import { useToast } from "@/hooks/use-toast"
-
-interface Profile {
-  id: string
-  name: string
-  email: string
-}
+import type { Profile } from "@/types/data" // Import Profile from types/data
 
 interface OrganizationFormProps {
   isOpen: boolean
@@ -194,8 +189,7 @@ export function OrganizationForm({
                   searchProfilesPlaceholder: dict.searchProfilesPlaceholder,
                   noProfilesFound: dict.noProfilesFound,
                 }}
-                // Disable MultiSelectProfiles if the form is disabled
-                disabled={isFormDisabled}
+                disabled={isFormDisabled} // Pass the disabled prop
               />
             </div>
           </div>
