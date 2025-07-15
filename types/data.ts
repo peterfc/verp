@@ -24,7 +24,7 @@ export interface Field {
 }
 
 export interface DataType {
-  id?: string
+  id?: string // Made optional for new data types
   name: string
   fields: Field[]
   organization_id: string
