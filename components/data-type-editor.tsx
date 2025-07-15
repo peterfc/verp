@@ -1,23 +1,24 @@
 "use client"
 
 import type React from "react"
-import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Minus } from "lucide-react"
-import type { Organization, DataType, Field, DataTypeFormSchema } from "@/types/data" // Import interfaces from types/data
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import type { UseFormReturn } from "react-hook-form"
-import * as z from "zod"
+import type { Organization, DataType, Field } from "@/types/data" // Import interfaces from types/data
 
 interface DataTypeEditorProps {
-  form: UseFormReturn<z.infer<typeof DataTypeFormSchema>>
+  name: string
+  setName: (name: string) => void
+  organizationId: string
+  setOrganizationId: (id: string) => void
+  fields: Field[]
+  updateField: (index: number, updated: Partial<Field>) => void
+  addField: () => void
+  removeField: (index: number) => void
   dataType?: DataType // existing dataType when editing, otherwise undefined for "new"
-  onSave: (newDataType: any) => Promise<void>
-  onCancel: () => void
   organizations: Organization[]
   availableDataTypes: DataType[]
   dict: {
@@ -56,49 +57,20 @@ interface DataTypeEditorProps {
 /* ─────────────────────────────────────────────────────────────────── */
 
 const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
-  form,
+  name,
+  setName,
+  organizationId,
+  setOrganizationId,
+  fields,
+  updateField,
+  addField,
+  removeField,
   dataType,
   organizations,
   availableDataTypes,
   dict,
-  isAdmin,
-  isManager,
   disabled,
 }) => {
-  const fields = form.watch("fields")
-  const organizationId = form.watch("organization_id")
-
-  /* helpers ──────────────────────────────────────────────────────── */
-
-  const addField = useCallback(() => {
-    const currentFields = form.getValues("fields")
-    form.setValue("fields", [...currentFields, { name: "", type: "string" }], {
-      shouldDirty: true,
-      shouldValidate: true,
-    })
-  }, [form])
-
-  const removeField = useCallback(
-    (index: number) => {
-      const currentFields = form.getValues("fields")
-      form.setValue(
-        "fields",
-        currentFields.filter((_, i) => i !== index),
-        { shouldDirty: true, shouldValidate: true },
-      )
-    },
-    [form],
-  )
-
-  const updateField = useCallback(
-    (index: number, updated: Partial<Field>) => {
-      const currentFields = form.getValues("fields")
-      const newFields = currentFields.map((f, i) => (i === index ? { ...f, ...updated } : f))
-      form.setValue("fields", newFields, { shouldDirty: true, shouldValidate: true })
-    },
-    [form],
-  )
-
   // Determine field type, with fallback logic for dropdown detection
   const getFieldType = (field: Field) => {
     // If field has options array, it's a dropdown regardless of type field
@@ -123,50 +95,43 @@ const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
   return (
     <div className="grid gap-6">
       {/* Name Field */}
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem className="grid grid-cols-4 items-center gap-4">
-            <FormLabel className="text-right">{dict.nameLabel}</FormLabel>
-            <FormControl>
-              <Input {...field} className="col-span-3" required disabled={disabled} />
-            </FormControl>
-            <FormMessage className="col-span-3 col-start-2" />
-          </FormItem>
-        )}
-      />
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="name" className="text-right">
+          {dict.nameLabel}
+        </Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="col-span-3"
+          required
+          disabled={disabled}
+        />
+      </div>
 
       {/* Organization Select */}
-      <FormField
-        control={form.control}
-        name="organization_id"
-        render={({ field }) => (
-          <FormItem className="grid grid-cols-4 items-center gap-4">
-            <FormLabel className="text-right">{dict.organizationLabel}</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disabled}>
-              <FormControl>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder={dict.organizationLabel} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {organizations.length === 0 && (
-                  <SelectItem value="__none" disabled>
-                    {dict.noOrganizationsFound}
-                  </SelectItem>
-                )}
-                {organizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>
-                    {org.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage className="col-span-3 col-start-2" />
-          </FormItem>
-        )}
-      />
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="organization" className="text-right">
+          {dict.organizationLabel}
+        </Label>
+        <Select value={organizationId} onValueChange={setOrganizationId} disabled={disabled}>
+          <SelectTrigger className="col-span-3" id="organization">
+            <SelectValue placeholder={dict.organizationLabel} />
+          </SelectTrigger>
+          <SelectContent>
+            {organizations.length === 0 && (
+              <SelectItem value="__none" disabled>
+                {dict.noOrganizationsFound}
+              </SelectItem>
+            )}
+            {organizations.map((org) => (
+              <SelectItem key={org.id} value={org.id}>
+                {org.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Dynamic Field List */}
       <div className="grid grid-cols-4 gap-4">
@@ -178,108 +143,74 @@ const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
             return (
               <div key={i} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <FormField
-                    control={form.control}
-                    name={`fields.${i}.name`}
-                    render={({ field: nameField }) => (
-                      <FormItem className="flex-grow">
-                        <FormControl>
-                          <Input placeholder={dict.nameLabel} {...nameField} required disabled={disabled} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <Input
+                    placeholder={dict.nameLabel}
+                    value={field.name}
+                    onChange={(e) => updateField(i, { name: e.target.value })}
+                    required
+                    disabled={disabled}
                   />
-                  <FormField
-                    control={form.control}
-                    name={`fields.${i}.type`}
-                    render={({ field: typeField }) => (
-                      <FormItem>
-                        <Select
-                          value={fieldType} // Use the determined fieldType for display
-                          onValueChange={(v) => {
-                            updateField(i, {
-                              type: v as Field["type"],
-                              options: undefined,
-                              tempOptionsInput: undefined,
-                              referenceDataTypeId: undefined,
-                            })
-                            typeField.onChange(v) // Also update the react-hook-form field
-                          }}
-                          disabled={disabled}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-[130px]">
-                              <SelectValue placeholder="Type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="string">{dict.fieldTypeOptions.string}</SelectItem>
-                            <SelectItem value="number">{dict.fieldTypeOptions.number}</SelectItem>
-                            <SelectItem value="boolean">{dict.fieldTypeOptions.boolean}</SelectItem>
-                            <SelectItem value="date">{dict.fieldTypeOptions.date}</SelectItem>
-                            <SelectItem value="json">{dict.fieldTypeOptions.json}</SelectItem>
-                            <SelectItem value="dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>
-                            <SelectItem value="file">{dict.fieldTypeOptions.file}</SelectItem>
-                            <SelectItem value="reference">{dict.fieldTypeOptions.reference}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <Select
+                    value={fieldType} // Use the determined fieldType for display
+                    onValueChange={(v) => {
+                      updateField(i, {
+                        type: v as Field["type"],
+                        options: undefined,
+                        tempOptionsInput: undefined,
+                        referenceDataTypeId: undefined,
+                      })
+                    }}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="string">{dict.fieldTypeOptions.string}</SelectItem>
+                      <SelectItem value="number">{dict.fieldTypeOptions.number}</SelectItem>
+                      <SelectItem value="boolean">{dict.fieldTypeOptions.boolean}</SelectItem>
+                      <SelectItem value="date">{dict.fieldTypeOptions.date}</SelectItem>
+                      <SelectItem value="json">{dict.fieldTypeOptions.json}</SelectItem>
+                      <SelectItem value="dropdown">{dict.fieldTypeOptions.dropdown}</SelectItem>
+                      <SelectItem value="file">{dict.fieldTypeOptions.file}</SelectItem>
+                      <SelectItem value="reference">{dict.fieldTypeOptions.reference}</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button type="button" size="icon" variant="ghost" onClick={() => removeField(i)} disabled={disabled}>
                     <Minus className="h-4 w-4" />
                   </Button>
                 </div>
 
                 {fieldType === "dropdown" && (
-                  <FormField
-                    control={form.control}
-                    name={`fields.${i}.tempOptionsInput`}
-                    render={({ field: optionsField }) => (
-                      <FormItem className="ml-4">
-                        <FormControl>
-                          <Textarea
-                            placeholder={dict.dropdownOptionsPlaceholder}
-                            {...optionsField}
-                            disabled={disabled}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="ml-4">
+                    <Textarea
+                      placeholder={dict.dropdownOptionsPlaceholder}
+                      value={field.tempOptionsInput ?? ""}
+                      onChange={(e) => updateField(i, { tempOptionsInput: e.target.value })}
+                      disabled={disabled}
+                    />
+                  </div>
                 )}
 
                 {fieldType === "reference" && (
-                  <FormField
-                    control={form.control}
-                    name={`fields.${i}.referenceDataTypeId`}
-                    render={({ field: referenceField }) => (
-                      <FormItem className="ml-4">
-                        <Select
-                          value={referenceField.value ?? ""}
-                          onValueChange={referenceField.onChange}
-                          disabled={disabled}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={dict.referenceDataTypePlaceholder} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {getAvailableReferenceDataTypes().map((dt) => (
-                              <SelectItem key={dt.id} value={dt.id}>
-                                {dt.name} ({dt.organization?.name || "Unknown Org"})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="ml-4">
+                    <Select
+                      value={field.referenceDataTypeId ?? ""}
+                      onValueChange={(v) => updateField(i, { referenceDataTypeId: v })}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={dict.referenceDataTypePlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableReferenceDataTypes().map((dt) => (
+                          <SelectItem key={dt.id} value={dt.id}>
+                            {dt.name} ({dt.organization?.name || "Unknown Org"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
             )
