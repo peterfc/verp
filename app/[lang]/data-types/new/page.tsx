@@ -1,15 +1,14 @@
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 import { DataTypeNewForm } from "./data-type-new-form"
-import { type DataType } from "@/types/data" // Import DataType type
-import { type Database } from "@/types/database" // Import Database type
+import type { DataType } from "@/types/data" // Import DataType type
+import type { Database } from "@/types/database" // Import Database type
 
 // Define a type for the raw data returned by the Supabase query
 // This matches the structure of the `data_types` table row with the joined `organizations` name
-type DataTypeWithOrganizationName = Database['public']['Tables']['data_types']['Row'] & {
-  organizations: { name: string } | null; // Use null for safety, though !inner implies non-null
-};
+type DataTypeWithOrganizationName = Database["public"]["Tables"]["data_types"]["Row"] & {
+  organizations: { name: string } | null // Use null for safety, though !inner implies non-null
+}
 
 interface PageProps {
   params: {
@@ -18,8 +17,8 @@ interface PageProps {
 }
 
 export default async function NewDataTypePage({ params }: PageProps) {
-  const { lang } = params;
-  const supabase = await createServerClient();
+  const { lang } = params
+  const supabase = await createServerClient()
 
   // Get current user and check permissions
   const {
@@ -40,11 +39,14 @@ export default async function NewDataTypePage({ params }: PageProps) {
     notFound()
   }
 
-  // Fetch organizations
-  const { data: organizations } = await supabase.from("organizations").select("id, name").order("name")
+  // Fetch organizations, including contact and industry
+  const { data: organizations } = await supabase
+    .from("organizations")
+    .select("id, name, contact, industry")
+    .order("name")
 
   // Fetch all available data types for reference fields
-  const { data: availableDataTypesRaw, error: availableDataTypesError } = await supabase
+  const { data: availableDataTypesRaw, error: availableDataTypesError } = (await supabase
     .from("data_types")
     .select(`
       id,
@@ -52,10 +54,10 @@ export default async function NewDataTypePage({ params }: PageProps) {
       organization_id,
       organizations!inner(name)
     `)
-    .order("name") as { data: DataTypeWithOrganizationName[] | null, error: any }; // Explicitly cast the result
+    .order("name")) as { data: DataTypeWithOrganizationName[] | null; error: any } // Explicitly cast the result
 
   if (availableDataTypesError) {
-    console.error("Error fetching available data types:", availableDataTypesError);
+    console.error("Error fetching available data types:", availableDataTypesError)
     // Depending on desired behavior, you might want to throw an error or return an empty array
     // For now, we'll proceed with an empty array if there's an error.
   }
@@ -68,7 +70,7 @@ export default async function NewDataTypePage({ params }: PageProps) {
       fields: [], // Fields are not needed for reference selection, so an empty array is fine
       organization_id: dt.organization_id,
       organization: dt.organizations ? { name: dt.organizations.name } : undefined, // Safely access organization name
-    })) || [];
+    })) || []
 
   return (
     <DataTypeNewForm
