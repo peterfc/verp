@@ -28,7 +28,7 @@ export default async function LocaleLayout({
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
   const dict = await getDictionary(lang)
 
-  const supabase = await createServerClient();
+  const supabase = await createServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -59,7 +59,8 @@ export default async function LocaleLayout({
   )
 }
 
-export async function generateMetadata({ params: { lang } }: { params: { lang: "en" | "es" } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { lang: "en" | "es" } }): Promise<Metadata> {
+  const { lang } = params // Access lang explicitly after receiving the full params object
   const dict = await getDictionary(lang)
   return {
     title: dict.layout.metadataTitle,
