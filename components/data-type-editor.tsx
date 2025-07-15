@@ -8,31 +8,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Minus } from "lucide-react"
-import type { Organization, DataType, Field } from "@/types/data" // Import interfaces from types/data
+import type { Organization, DataType, Field, DataTypeFormSchema } from "@/types/data" // Import interfaces from types/data
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import type { UseFormReturn } from "react-hook-form"
 import * as z from "zod"
 
-// Define the schema for the form, which DataTypeEditor will now work with
-const formSchema = z.object({
-  name: z.string().min(1, { message: "Data type name is required." }),
-  organization_id: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
-  fields: z
-    .array(
-      z.object({
-        name: z.string().min(1, { message: "Field name is required." }),
-        type: z.enum(["string", "number", "boolean", "date", "json", "dropdown", "file", "reference"]),
-        options: z.array(z.string()).optional(),
-        tempOptionsInput: z.string().optional(), // Temporary field for form input
-        referenceDataTypeId: z.string().uuid().optional().or(z.literal("")), // Allow empty string for no reference
-      }),
-    )
-    .min(1, { message: "At least one field is required." }),
-})
-
 interface DataTypeEditorProps {
-  form: UseFormReturn<z.infer<typeof formSchema>>
+  form: UseFormReturn<z.infer<typeof DataTypeFormSchema>>
   dataType?: DataType // existing dataType when editing, otherwise undefined for "new"
+  onSave: (newDataType: any) => Promise<void>
+  onCancel: () => void
   organizations: Organization[]
   availableDataTypes: DataType[]
   dict: {

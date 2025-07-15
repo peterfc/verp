@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTypeEditor } from "@/components/data-type-editor"
 import { useToast } from "@/hooks/use-toast"
-import { Organization, DataType } from "@/types/data"
+import { Organization, DataType, DataTypeFormSchema } from "@/types/data"
+import type { UseFormReturn } from "react-hook-form"
+import z from "zod"
 
 interface DataTypeNewFormProps {
   organizations: Organization[]
@@ -122,6 +124,7 @@ export function DataTypeNewForm({ organizations, availableDataTypes, lang, isAdm
         dict={dict.dataTypeEditor}
         isAdmin={isAdmin}
         isManager={isManager}
+        disabled={false}
       />
     </div>
   )

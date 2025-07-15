@@ -1,3 +1,5 @@
+import * as z from "zod"
+
 export interface Profile {
   id: string
   name: string
@@ -39,3 +41,19 @@ export interface DynamicDataEntry {
   created_at?: string
   updated_at?: string
 }
+
+export const DataTypeFormSchema = z.object({
+  name: z.string().min(1, { message: "Data type name is required." }),
+  organization_id: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+  fields: z
+    .array(
+      z.object({
+        name: z.string().min(1, { message: "Field name is required." }),
+        type: z.enum(["string", "number", "boolean", "date", "json", "dropdown", "file", "reference"]),
+        options: z.array(z.string()).optional(),
+        tempOptionsInput: z.string().optional(), // Temporary field for form input
+        referenceDataTypeId: z.string().uuid().optional().or(z.literal("")), // Allow empty string for no reference
+      }),
+    )
+    .min(1, { message: "At least one field is required." }),
+})
