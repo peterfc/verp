@@ -276,13 +276,12 @@ export function DataTypeEditForm({
       </CardContent>
       <DeleteDialog
         isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
+        onOpenChange={setShowDeleteDialog} // Changed from onClose to onOpenChange
         onConfirm={handleDelete}
+        itemType="data type" // Added itemType
+        itemName={dataType.name} // Added itemName
         title="Confirm Deletion"
         description="Are you sure you want to delete this data type? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        isConfirming={isDeleting}
       />
     </Card>
   )
