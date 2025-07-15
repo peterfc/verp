@@ -177,7 +177,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
     if (entry) {
       const finalEntry: DynamicDataEntry = {
         ...(entry || {}), // Preserve existing ID if editing
-        data_type_id: dataType.id,
+        data_type_id: dataType.id ? dataType.id : "",
         organization_id: dataType.organization_id, // Ensure organization_id is passed
         data: dataToSave,
       }

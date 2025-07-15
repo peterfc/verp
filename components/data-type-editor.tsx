@@ -204,7 +204,7 @@ const DataTypeEditor: React.FC<DataTypeEditorProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableReferenceDataTypes().map((dt) => (
-                          <SelectItem key={dt.id} value={dt.id}>
+                          <SelectItem key={dt.id} value={dt.id ? dt.id : ""}>
                             {dt.name} ({dt.organization?.name || "Unknown Org"})
                           </SelectItem>
                         ))}
