@@ -18,10 +18,11 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-import type { Organization } from "@/types/data" // Import Organization and Profile from types/data
+import type { Organization, Profile } from "@/types/data" // Import Organization and Profile from types/data
 
 export default function OrganizationsPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([]) // Added state for profiles
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingOrganization, setEditingOrganization] = useState<Organization | undefined>(undefined)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -166,11 +167,30 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
     }
   }, [dict, toast])
 
+  const fetchProfiles = useCallback(async () => {
+    try {
+      const response = await fetch("/api/profiles")
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data: Profile[] = await response.json()
+      setProfiles(data)
+    } catch (err: any) {
+      console.error("Failed to fetch profiles:", err)
+      toast({
+        title: dict?.common.error || "Error",
+        description: dict?.organizationForm.errorFetchingProfiles || "Failed to fetch profiles for selection.",
+        variant: "destructive",
+      })
+    }
+  }, [dict, toast])
+
   useEffect(() => {
     if (dict) {
       fetchOrganizations()
+      fetchProfiles() // Fetch profiles when dictionary is loaded
     }
-  }, [fetchOrganizations, dict])
+  }, [fetchOrganizations, fetchProfiles, dict])
 
   const handleSaveOrganization = async (organizationData: Organization) => {
     setError(null)
@@ -356,17 +376,19 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
         onOpenChange={setIsFormOpen}
         organization={editingOrganization}
         onSave={handleSaveOrganization}
+        profiles={profiles} // Added profiles prop
+        lang={lang} // Added lang prop
         dict={{
           editTitle: dict.organizationForm.editTitle,
           addTitle: dict.organizationForm.addTitle,
           editDescription: dict.organizationForm.editDescription,
           addDescription: dict.organizationForm.addDescription,
           nameLabel: dict.organizationForm.nameLabel,
-          namePlaceholder: dict.organizationForm.namePlaceholder, // Added
+          namePlaceholder: dict.organizationForm.namePlaceholder,
           contactLabel: dict.organizationForm.contactLabel,
-          contactPlaceholder: dict.organizationForm.contactPlaceholder, // Added
+          contactPlaceholder: dict.organizationForm.contactPlaceholder,
           industryLabel: dict.organizationForm.industryLabel,
-          industryPlaceholder: dict.organizationForm.industryPlaceholder, // Added
+          industryPlaceholder: dict.organizationForm.industryPlaceholder,
           profilesLabel: dict.organizationForm.profilesLabel,
           saveChangesButton: dict.organizationForm.saveChangesButton,
           addOrganizationButton: dict.organizationForm.addOrganizationButton,
@@ -375,17 +397,17 @@ export default function OrganizationsPage({ params: { lang } }: { params: { lang
           selectProfilesPlaceholder: dict.multiSelectProfiles.selectProfilesPlaceholder,
           searchProfilesPlaceholder: dict.multiSelectProfiles.searchProfilesPlaceholder,
           noProfilesFound: dict.multiSelectProfiles.noProfilesFound,
-          saveButton: dict.organizationForm.saveButton, // Added
-          savingButton: dict.organizationForm.savingButton, // Added
-          cancelButton: dict.organizationForm.cancelButton, // Added
-          deleteButton: dict.organizationForm.deleteButton, // Added
-          deletingButton: dict.organizationForm.deletingButton, // Added
-          confirmDeleteTitle: dict.organizationForm.confirmDeleteTitle, // Added
-          confirmDeleteDescription: dict.organizationForm.confirmDeleteDescription, // Added
-          successToastTitle: dict.organizationForm.successToastTitle, // Added
-          successToastDescription: dict.organizationForm.successToastDescription, // Added
-          errorToastTitle: dict.organizationForm.errorToastTitle, // Added
-          errorToastDescription: dict.organizationForm.errorToastDescription, // Added
+          saveButton: dict.organizationForm.saveButton,
+          savingButton: dict.organizationForm.savingButton,
+          cancelButton: dict.organizationForm.cancelButton,
+          deleteButton: dict.organizationForm.deleteButton,
+          deletingButton: dict.organizationForm.deletingButton,
+          confirmDeleteTitle: dict.organizationForm.confirmDeleteTitle,
+          confirmDeleteDescription: dict.organizationForm.confirmDeleteDescription,
+          successToastTitle: dict.organizationForm.successToastTitle,
+          successToastDescription: dict.organizationForm.successToastDescription,
+          errorToastTitle: dict.organizationForm.errorToastTitle,
+          errorToastDescription: dict.organizationForm.errorToastDescription,
         }}
         isAdmin={isAdmin}
         isManager={isManager}
