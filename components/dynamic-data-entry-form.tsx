@@ -264,14 +264,6 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                     </label>
                   </div>
                 )}
-                {fieldType === "string" && (
-                  <Textarea
-                    id={field.name}
-                    value={value || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    className={error ? "border-red-500" : ""}
-                  />
-                )}
                 {fieldType === "dropdown" && (
                   <Select onValueChange={(val) => handleChange(field.name, val)} value={value || ""}>
                     <SelectTrigger className={cn(error && "border-red-500")}>
