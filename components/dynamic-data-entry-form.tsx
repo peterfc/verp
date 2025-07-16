@@ -186,14 +186,19 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
     } else {
       console.log("Could not save entry, it is undefined")
     }
-    
   }
 
   const getFieldType = (field: Field) => {
-    if (field.type === "reference") {
+    // If field has options array, it's a dropdown regardless of type field
+    if (field.options && Array.isArray(field.options) && field.options.length > 0) {
+      return "dropdown"
+    }
+    // If field has referenceDataTypeId, it's a reference field
+    if (field.referenceDataTypeId) {
       return "reference"
     }
-    return field.type
+    // Otherwise use the explicit type
+    return field.type || "string"
   }
 
   const getReferenceDisplayValue = (referenceEntry: { id: string; data: Record<string, any> }) => {
@@ -313,10 +318,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                   />
                 )}
                 {fieldType === "file" && (
-                  <FileUpload
-                    value={value}
-                    onChange={(file) => handleChange(field.name, file)}
-                  />
+                  <FileUpload value={value} onChange={(file) => handleChange(field.name, file)} />
                 )}
                 {fieldType === "reference" && (
                   <Select onValueChange={(val) => handleChange(field.name, val)} value={value || ""}>
