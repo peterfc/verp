@@ -230,8 +230,8 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
             const error = errors[field.name]
 
             console.log(
-              `Rendering field: ${field.name}, type: ${fieldType}, options: ${field.options}, referenceDataTypeId: ${field.referenceDataTypeId}, value:`,
-              value,
+              `DEBUG: Field ${field.name}, determined type: ${fieldType}, actual field.type: ${field.type}, options:`,
+              field.options,
             )
 
             return (
