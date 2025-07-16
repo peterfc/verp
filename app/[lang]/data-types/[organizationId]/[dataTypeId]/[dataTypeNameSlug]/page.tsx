@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { DynamicDataEntryForm } from "@/components/dynamic-data-entry-form"
@@ -51,10 +53,12 @@ const pluralize = (word: string): string => {
 }
 
 export default function DynamicDataPage({
-  params: { lang, organizationId, dataTypeId, dataTypeNameSlug },
+  params, // Accept params as a Promise
 }: {
-  params: { lang: "en" | "es"; organizationId: string; dataTypeId: string; dataTypeNameSlug: string }
+  params: Promise<{ lang: "en" | "es"; organizationId: string; dataTypeId: string; dataTypeNameSlug: string }>
 }) {
+  const { lang, organizationId, dataTypeId, dataTypeNameSlug } = React.use(params) // Unwrap params with React.use()
+
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)

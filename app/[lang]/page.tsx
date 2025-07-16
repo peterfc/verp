@@ -5,7 +5,8 @@ import { getDictionary } from "./dictionaries" // Import dictionary
 import { cookies } from "next/headers" // Import cookies
 import { createServerClient } from "@/lib/supabase/server" // Import server client
 
-export default async function HomePage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
+export default async function HomePage({ params }: { params: { lang: "en" | "es" } }) {
+  const { lang } = await params;
   const dict = await getDictionary(lang) // Fetch dictionary
 
   const supabase = await createServerClient();

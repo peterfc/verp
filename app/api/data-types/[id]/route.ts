@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { data: dataType, error } = await supabase.from("data_types").select("*").eq("id", id).single()
 
   if (error) {

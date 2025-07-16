@@ -19,11 +19,12 @@ export async function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params: { lang },
+  params
 }: {
   children: React.ReactNode
   params: { lang: "en" | "es" }
 }) {
+  const { lang } = await params;
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
   const dict = await getDictionary(lang)
@@ -60,7 +61,7 @@ export default async function LocaleLayout({
 }
 
 export async function generateMetadata({ params }: { params: { lang: "en" | "es" } }): Promise<Metadata> {
-  const { lang } = params // Access lang explicitly after receiving the full params object
+  const { lang } = await params // Access lang explicitly after receiving the full params object
   const dict = await getDictionary(lang)
   return {
     title: dict.layout.metadataTitle,

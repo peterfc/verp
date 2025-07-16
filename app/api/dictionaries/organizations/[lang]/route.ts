@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getDictionary } from "../../../../[lang]/dictionaries"
 
 export async function GET(request: Request, { params }: { params: { lang: "en" | "es" } }) {
-  const { lang } = params
+  const { lang } = await params
   try {
     const dict = await getDictionary(lang)
     // Return only the parts of the dictionary relevant to the organizations page
