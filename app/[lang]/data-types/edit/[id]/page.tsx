@@ -51,7 +51,7 @@ interface RawDataTypeFromSupabase {
 }
 
 export default async function EditDataTypePage({ params }: PageProps) {
-  const { lang, id } = await params
+  const { lang, id } = params
   const supabase = await createServerClient()
 
   const { data: dataType, error: dataTypeError } = await supabase.from("data_types").select("*").eq("id", id).single()

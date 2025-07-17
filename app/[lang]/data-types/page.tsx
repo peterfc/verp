@@ -1,13 +1,7 @@
-"use client"
 import { createClient } from "@/lib/supabase/server"
 import { DataTypesClientPage } from "./data-types-client"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { DataType } from "@/types/data"
-
-interface Organization {
-  id: string
-  name: string
-}
 
 export default async function DataTypesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
   const supabase = createClient()
@@ -34,6 +28,7 @@ export default async function DataTypesPage({ params: { lang } }: { params: { la
       `
       id,
       name,
+      fields,
       organization_id,
       organization:organizations (name)
     `,
@@ -42,18 +37,20 @@ export default async function DataTypesPage({ params: { lang } }: { params: { la
 
   if (error) {
     console.error("Error fetching data types:", error)
+    // Render a user-friendly error message using the dictionary
     return <div className="text-red-500 p-4">{dict.dataTypesPage.failedToFetchDataTypes}</div>
   }
 
   // Cast the fetched data to ensure the 'organization' object has the correct type
-  const initialDataTypes = data?.map((dt) => ({
-    ...dt,
-    organization: dt.organization as { name: string } | undefined,
-  })) as DataType[] | []
+  const initialDataTypes =
+    data?.map((dt) => ({
+      ...dt,
+      organization: dt.organization as { name: string } | undefined,
+    })) || []
 
   return (
     <DataTypesClientPage
-      initialDataTypes={initialDataTypes}
+      initialDataTypes={initialDataTypes as DataType[]}
       lang={lang}
       dict={dict}
       isAdmin={isAdmin}
