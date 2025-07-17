@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { DynamicDataEntryForm } from "@/components/dynamic-data-entry-form"
 import { DeleteDialog } from "@/components/delete-dialog"
@@ -63,8 +63,8 @@ export default function DynamicDataPage({
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
 
-  // Local "never-undefined" helper.
-  const dynamicDictDefaults = {
+  // Local "never-undefined" helper - memoized to prevent unnecessary re-renders
+  const dynamicDictDefaults = useMemo(() => ({
     title: "Data Entries",
     loadingEntries: "Loading entries...",
     failedToFetchEntries: "Failed to fetch entries.",
@@ -74,12 +74,19 @@ export default function DynamicDataPage({
     failedToDeleteEntry: "Failed to delete entry.",
     addEntry: "Add Entry",
     noEntriesFound: "No entries yet.",
-  }
+  }), [])
 
-  const dynamicDict = {
+  const dynamicDict = useMemo(() => ({
     ...dynamicDictDefaults,
     ...(dict?.dynamicDataPage ?? {}),
-  }
+  }), [dict?.dynamicDataPage, dynamicDictDefaults])
+
+  // Batch user-related state to reduce re-renders
+  const [userState, setUserState] = useState({
+    currentUser: null as User | null,
+    isAdmin: false,
+    isManager: false,
+  })
 
   const [dataType, setDataType] = useState<DataType | undefined>(undefined)
   const [dataEntries, setDataEntries] = useState<DynamicDataEntry[]>([])
@@ -88,14 +95,14 @@ export default function DynamicDataPage({
   const [editingEntry, setEditingEntry] = useState<DynamicDataEntry | undefined>(undefined)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<DynamicDataEntry | undefined>(undefined)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isManager, setIsManager] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
-  const supabase = createBrowserClient()
+  // Destructure user state for easier access
+  const { currentUser, isAdmin, isManager } = userState
+
+  const supabase = useMemo(() => createBrowserClient(), [])
 
   // Add this log to check initial state on render
-  console.log("DynamicDataPage rendered. Initial isFormOpen:", isFormOpen, "editingEntry:", editingEntry)
+  // console.log("DynamicDataPage rendered. Initial isFormOpen:", isFormOpen, "editingEntry:", editingEntry)
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -104,16 +111,31 @@ export default function DynamicDataPage({
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      setCurrentUser(user)
 
       if (user) {
         const { data: userProfile, error } = await supabase.from("profiles").select("type").eq("id", user.id).single()
         if (error) {
           console.error("Error fetching current user profile type:", error)
+          // Update state with user but no profile info
+          setUserState({
+            currentUser: user,
+            isAdmin: false,
+            isManager: false,
+          })
         } else if (userProfile) {
-          setIsAdmin(userProfile.type === "Administrator")
-          setIsManager(userProfile.type === "Manager")
+          // Batch all user-related state updates into a single setState call
+          setUserState({
+            currentUser: user,
+            isAdmin: userProfile.type === "Administrator",
+            isManager: userProfile.type === "Manager",
+          })
         }
+      } else {
+        setUserState({
+          currentUser: null,
+          isAdmin: false,
+          isManager: false,
+        })
       }
     }
     fetchUserAndProfile()
@@ -186,12 +208,14 @@ export default function DynamicDataPage({
       const dataTypeData: DataType = await dataTypeResponse.json()
 
       console.log("Fetched data type:", dataTypeData)
-      setDataType(dataTypeData)
 
       // Fetch the actual data entries for this data type
       const entriesResponse = await fetch(`/api/dynamic-data-entries?dataTypeId=${dataTypeId}`)
       if (!entriesResponse.ok) throw new Error("Failed to fetch data entries")
       const entriesData: DynamicDataEntry[] = await entriesResponse.json()
+      
+      // Batch state updates to reduce re-renders
+      setDataType(dataTypeData)
       setDataEntries(entriesData)
     } catch (err: any) {
       console.error(err)

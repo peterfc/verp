@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,27 +30,20 @@ interface DynamicDataEntryFormProps {
 
 export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }: DynamicDataEntryFormProps) {
   // Safely merge dictionaries; if none provided we fall back to defaults
-  const mergedDict = { ...defaultDict, ...(dict ?? {}) }
-  const [formData, setFormData] = useState<Record<string, any>>({})
+  const mergedDict = useMemo(() => ({ ...defaultDict, ...(dict ?? {}) }), [dict])
+  
+  // Initialize formData directly from entry prop - no useEffect needed
+  const initialFormData = entry?.data || {}
+  const [formData, setFormData] = useState<Record<string, any>>(initialFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [referenceOptions, setReferenceOptions] = useState<Record<string, { id: string; data: Record<string, any> }[]>>(
     {},
   )
-  const supabase = createBrowserClient()
+  const supabase = useMemo(() => createBrowserClient(), [])
   const { toast } = useToast()
 
-  useEffect(() => {
-    console.log("Form initialized with entry:", entry)
-    const initialData: Record<string, any> = {}
-    if (entry?.data) {
-      // Deep copy entry.data to avoid direct mutation
-      Object.keys(entry.data).forEach((key) => {
-        initialData[key] = entry.data[key]
-      })
-    }
-    setFormData(initialData)
-    console.log("Setting form data from entry:", initialData)
-  }, [entry])
+  console.log("Form rendered with entry:", entry)
+  console.log("Form data:", formData)
 
   useEffect(() => {
     const loadReferenceOptions = async () => {
@@ -174,18 +167,18 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
       return
     }
 
-    if (entry) {
-      const finalEntry: DynamicDataEntry = {
-        ...(entry || {}), // Preserve existing ID if editing
-        data_type_id: dataType.id ? dataType.id : "",
-        organization_id: dataType.organization_id, // Ensure organization_id is passed
-        data: dataToSave,
-      }
-      console.log("Calling onSave with:", finalEntry)
-      onSave(finalEntry)
-    } else {
-      console.log("Could not save entry, it is undefined")
+    // Create the entry object to save
+    const finalEntry: DynamicDataEntry = {
+      id: entry?.id || "", // Provide empty string for new entries
+      data_type_id: dataType.id || "",
+      organization_id: dataType.organization_id || "",
+      data: dataToSave,
+      created_at: entry?.created_at || "",
+      updated_at: entry?.updated_at || "",
     }
+    
+    console.log("Calling onSave with:", finalEntry)
+    onSave(finalEntry)
   }
 
   const getFieldType = (field: Field) => {
@@ -230,7 +223,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
             const error = errors[field.name]
 
             console.log(
-              `DEBUG: Field ${field.name}, determined type: ${fieldType}, actual field.type: ${field.type}, value: ${value}, options:`,
+              `DEBUG: Field ${field.name}, determined type: ${fieldType}, actual field.type: ${field.type}, value: ${value} (type: ${typeof value}), options:`,
               field.options,
             )
 
@@ -270,7 +263,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                   </div>
                 )}
                 {fieldType === "dropdown" && (
-                  <Select onValueChange={(val) => handleChange(field.name, val)} value={value || ""}>
+                  <Select onValueChange={(val) => handleChange(field.name, val)} value={value ?? ""}>
                     <SelectTrigger className={cn(error && "border-red-500")}>
                       <SelectValue placeholder={`Select a ${field.name}`} />
                     </SelectTrigger>
@@ -321,7 +314,7 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                   <FileUpload value={value} onChange={(file) => handleChange(field.name, file)} />
                 )}
                 {fieldType === "reference" && (
-                  <Select onValueChange={(val) => handleChange(field.name, val)} value={value || ""}>
+                  <Select onValueChange={(val) => handleChange(field.name, val)} value={value ?? ""}>
                     <SelectTrigger className={cn(error && "border-red-500")}>
                       <SelectValue placeholder={`Select a ${field.name}`} />
                     </SelectTrigger>
@@ -332,10 +325,10 @@ export function DynamicDataEntryForm({ dataType, entry, onSave, onCancel, dict }
                         </SelectItem>
                       ) : (
                         referenceOptions[field.name]?.map((refEntry) => {
-                          console.log(
-                            `Reference field ${field.name} has ${referenceOptions[field.name]?.length} options:`,
-                            referenceOptions[field.name],
-                          )
+                          // console.log(
+                          //   `Reference field ${field.name} has ${referenceOptions[field.name]?.length} options:`,
+                          //   referenceOptions[field.name],
+                          // )
                           return (
                             <SelectItem key={refEntry.id} value={refEntry.id}>
                               {getReferenceDisplayValue(refEntry)}
