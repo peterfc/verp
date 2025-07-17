@@ -2,9 +2,9 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", id).single()
 
   if (error) {
@@ -19,9 +19,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   return NextResponse.json(profile)
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { name, email, type } = await request.json() // Destructure 'type'
 
   const { data, error } = await supabase.from("profiles").update({ name, email, type }).eq("id", id).select().single() // Include 'type' in update
@@ -38,9 +38,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   return NextResponse.json(data)
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
 
   // When deleting a profile, you might also want to delete the associated auth.user
   // This requires admin privileges. For now, RLS on profiles table will prevent

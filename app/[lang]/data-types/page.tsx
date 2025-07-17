@@ -3,7 +3,7 @@ import { DataTypesClientPage } from "./data-types-client"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { DataType } from "@/types/data"
 
-export default async function DataTypesPage({ params }: { params: { lang: "en" | "es" } }) {
+export default async function DataTypesPage({ params }: { params: Promise<{ lang: "en" | "es" }> }) {
   const { lang } = await params
   const supabase = await createClient()
   const dict = await getDictionary(lang)

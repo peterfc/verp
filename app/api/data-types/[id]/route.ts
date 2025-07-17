@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
   const { id } = await params
   const { data: dataType, error } = await supabase.from("data_types").select("*").eq("id", id).single()
@@ -19,9 +19,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   return NextResponse.json(dataType)
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { name, fields, organization_id } = await request.json()
 
   let data, error
@@ -46,9 +46,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   return NextResponse.json(data)
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
 
   const { error } = await supabase.from("data_types").delete().eq("id", id)
   if (error) {

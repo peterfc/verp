@@ -6,7 +6,7 @@ import { cookies } from "next/headers"
  * GET /api/dynamic-data-entries/[id]
  * Fetch a single dynamic_data_entries row.
  */
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createServerClient();
   const { data, error } = await supabase.from("dynamic_data_entries").select("*").eq("id", id).maybeSingle()
@@ -27,7 +27,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
  * PUT /api/dynamic-data-entries/[id]
  * Body: { data: Record<string, unknown> }
  */
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerClient();
 
@@ -93,7 +93,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 /**
  * DELETE /api/dynamic-data-entries/[id]
  */
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerClient();
 

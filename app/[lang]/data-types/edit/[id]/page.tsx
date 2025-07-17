@@ -37,10 +37,10 @@ async function updateDataType(formData: Partial<DataType>) {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     lang: string
     id: string
-  }
+  }>
 }
 
 interface RawDataTypeFromSupabase {
@@ -51,7 +51,7 @@ interface RawDataTypeFromSupabase {
 }
 
 export default async function EditDataTypePage({ params }: PageProps) {
-  const { lang, id } = params
+  const { lang, id } = await params
   const supabase = await createServerClient()
 
   const { data: dataType, error: dataTypeError } = await supabase.from("data_types").select("*").eq("id", id).single()

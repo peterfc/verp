@@ -2,9 +2,9 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createServerClient } from "@/lib/supabase/server"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { data: organization, error } = await supabase
     .from("organizations")
     .select("*, organization_profiles(profile_id, profiles(id, name, email))")
@@ -29,9 +29,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   return NextResponse.json(formattedOrganization)
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
   const { name, contact, industry, profile_ids } = await request.json()
 
   // Update organization details
@@ -95,9 +95,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   return NextResponse.json(formattedFinalOrganization)
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerClient();
-  const { id } = params
+  const { id } = await params
 
   // ON DELETE CASCADE on foreign keys in organization_profiles table will handle deleting associations
   const { error } = await supabase.from("organizations").delete().eq("id", id)

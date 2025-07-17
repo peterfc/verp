@@ -11,13 +11,13 @@ type DataTypeWithOrganizationName = Database["public"]["Tables"]["data_types"]["
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     lang: string
-  }
+  }>
 }
 
 export default async function NewDataTypePage({ params }: PageProps) {
-  const { lang } = params
+  const { lang } = await params
   const supabase = await createServerClient()
 
   // Get current user and check permissions

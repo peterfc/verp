@@ -4,7 +4,6 @@ import React from "react"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { DynamicDataEntryForm } from "@/components/dynamic-data-entry-form"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,19 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-import type { Field, DataType, DynamicDataEntry } from "@/types/data" // Import from new types file
-
-interface DynamicDataTypePageProps {
-  params: {
-    lang: string
-    organizationId: string
-    dataTypeId: string
-    dataTypeNameSlug: string
-  }
-  searchParams: {
-    editEntryId?: string
-  }
-}
+import type { Field, DataType, DynamicDataEntry } from "@/types/data"
 
 // Simple pluralization function
 const pluralize = (word: string): string => {
@@ -91,8 +78,6 @@ export default function DynamicDataPage({
   const [dataType, setDataType] = useState<DataType | undefined>(undefined)
   const [dataEntries, setDataEntries] = useState<DynamicDataEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<DynamicDataEntry | undefined>(undefined)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<DynamicDataEntry | undefined>(undefined)
 
@@ -246,73 +231,12 @@ export default function DynamicDataPage({
     }
   }
 
-  const handleSaveEntry = async (entryData: DynamicDataEntry) => {
-    try {
-      console.log("handleSaveEntry called with:", entryData)
+  const navigateToNewEntry = () => {
+    router.push(`/${lang}/data-types/${organizationId}/${dataTypeId}/${dataTypeNameSlug}/entry`)
+  }
 
-      // Never send undefined; Supabase will reject it.
-      // Send the minimal payload the API expects
-      const isEdit = Boolean(entryData.id)
-
-      const payload = isEdit
-        ? { data: entryData.data ?? {} } // PUT
-        : {
-            data_type_id: dataTypeId, // POST
-            organization_id: organizationId,
-            data: entryData.data ?? {},
-          }
-
-      const [method, url] = isEdit
-        ? (["PUT", `/api/dynamic-data-entries/${entryData.id}`] as const)
-        : (["POST", "/api/dynamic-data-entries"] as const)
-
-      console.log(`Making ${method} request to ${url} with payload:`, payload)
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: safeStringify(payload),
-      })
-
-      console.log("Response status:", response.status, response.statusText)
-
-      if (!response.ok) {
-        // ---------- robust error extraction ----------
-        let message = dynamicDict.failedToSaveEntry || `HTTP ${response.status} ${response.statusText}`
-
-        const ct = response.headers.get("content-type") ?? ""
-        if (ct.includes("application/json")) {
-          try {
-            const j = await response.clone().json()
-            if (j?.error) message = String(j.error)
-          } catch {
-            /* swallow JSON parse errors */
-          }
-        } else {
-          const txt = await response.clone().text()
-          if (txt.trim()) message = txt.trim()
-        }
-        throw new Error(message)
-      }
-
-      const responseData = await response.json()
-      console.log("Response data:", responseData)
-
-      toast({
-        title: dict?.common.success ?? "Success",
-        description: dynamicDict.entrySaved ?? "Saved",
-      })
-      await fetchData()
-      setIsFormOpen(false)
-      setEditingEntry(undefined)
-    } catch (err: any) {
-      toast({
-        title: dict?.common.error ?? "Error",
-        description: err?.message ?? "Failed to save",
-        variant: "destructive",
-      })
-      console.error("handleSaveEntry error:", err)
-    }
+  const navigateToEditEntry = (entry: DynamicDataEntry) => {
+    router.push(`/${lang}/data-types/${organizationId}/${dataTypeId}/${dataTypeNameSlug}/entry/edit/${entry.id}`)
   }
 
   const handleDeleteEntry = async () => {
@@ -354,20 +278,9 @@ export default function DynamicDataPage({
     }
   }
 
-  const openEditForm = (entry: DynamicDataEntry) => {
-    console.log("Opening edit form with entry:", entry)
-    setEditingEntry(entry)
-    setIsFormOpen(true)
-  }
-
   const openDeleteConfirm = (entry: DynamicDataEntry) => {
     setEntryToDelete(entry)
     setIsDeleteDialogOpen(true)
-  }
-
-  const handleCancelForm = () => {
-    setIsFormOpen(false)
-    setEditingEntry(undefined)
   }
 
   const renderCellValue = (field: Field, value: any) => {
@@ -419,12 +332,7 @@ export default function DynamicDataPage({
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold">{pluralize(dataType.name)}</CardTitle>
           {canAddData && (
-            <Button
-              onClick={() => {
-                setEditingEntry(undefined)
-                setIsFormOpen(true)
-              }}
-            >
+            <Button onClick={navigateToNewEntry}>
               <Plus className="mr-2 h-4 w-4" />
               Add {dataType.name}
             </Button>
@@ -466,7 +374,7 @@ export default function DynamicDataPage({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{dict.common.actions}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditForm(entry)}>{dict.common.edit}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigateToEditEntry(entry)}>{dict.common.edit}</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openDeleteConfirm(entry)}>
                               {dict.common.delete}
@@ -482,16 +390,6 @@ export default function DynamicDataPage({
           )}
         </CardContent>
       </Card>
-
-      {isFormOpen && (
-        <DynamicDataEntryForm
-          dataType={dataType}
-          entry={editingEntry}
-          onSave={handleSaveEntry}
-          onCancel={handleCancelForm}
-          dict={dict.dynamicDataEntryForm}
-        />
-      )}
 
       {entryToDelete && (
         <DeleteDialog
