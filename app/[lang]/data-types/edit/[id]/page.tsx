@@ -1,7 +1,40 @@
+import { revalidatePath } from "next/cache"
 import { notFound } from "next/navigation"
 import { createServerClient } from "@/lib/supabase/server"
 import { DataTypeEditForm } from "./data-type-edit-form"
-import type { DataType, Organization } from "@/types/data" // Import DataType and Organization from centralized types
+import type { DataType, Organization } from "@/types/data"
+
+// Server action to update the data type
+async function updateDataType(formData: Partial<DataType>) {
+  "use server"
+
+  const supabase = await createServerClient()
+  const { id, name, organization_id, fields } = formData
+
+  if (!id) {
+    return { error: { message: "Data Type ID is missing." } }
+  }
+
+  try {
+    // Update the main data type properties, including the fields JSONB
+    const { error: dataTypeError } = await supabase
+      .from("data_types")
+      .update({
+        name,
+        organization_id,
+        fields,
+      })
+      .eq("id", id)
+
+    if (dataTypeError) throw dataTypeError
+
+    revalidatePath("/[lang]/data-types", "layout")
+    return {}
+  } catch (error: any) {
+    console.error("Error updating data type:", error)
+    return { error: { message: error.message || "Failed to update data type." } }
+  }
+}
 
 interface PageProps {
   params: {
@@ -10,90 +43,67 @@ interface PageProps {
   }
 }
 
-// Define a type for the raw data returned from Supabase for availableDataTypes
 interface RawDataTypeFromSupabase {
   id: string
   name: string
   organization_id: string
-  organizations: { name: string } | null // organizations can be null if no join match
+  organizations: { name: string } | null
 }
 
 export default async function EditDataTypePage({ params }: PageProps) {
   const { lang, id } = params
   const supabase = await createServerClient()
 
-  // Get current user and check permissions
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    notFound()
-  }
-
-  // Get user profile to check permissions
-  const { data: userProfile } = await supabase.from("profiles").select("type").eq("id", user.id).single()
-
-  const isAdmin = userProfile?.type === "Administrator"
-  const isManager = userProfile?.type === "Manager"
-
-  if (!isAdmin && !isManager) {
-    notFound()
-  }
-
-  // Fetch the data type
   const { data: dataType, error: dataTypeError } = await supabase.from("data_types").select("*").eq("id", id).single()
 
   if (dataTypeError || !dataType) {
     notFound()
   }
 
-  // Fetch organizations, including contact and industry
   const { data: organizations, error: organizationsError } = await supabase
     .from("organizations")
-    .select("id, name, contact, industry") // Added contact and industry
+    .select("id, name, contact, industry")
     .order("name")
 
   if (organizationsError) {
     console.error("Error fetching organizations:", organizationsError)
-    // Handle error appropriately
   }
 
-  // Fetch all available data types for reference fields (excluding the current one)
   const { data: availableDataTypes, error: availableDataTypesError } = (await supabase
     .from("data_types")
-    .select(`
+    .select(
+      `
       id,
       name,
       organization_id,
       organizations!inner(name)
-    `)
+    `,
+    )
     .neq("id", id)
-    .order("name")) as { data: RawDataTypeFromSupabase[] | null; error: any } // Cast to the raw type
+    .order("name")) as { data: RawDataTypeFromSupabase[] | null; error: any }
 
   if (availableDataTypesError) {
     console.error("Error fetching available data types:", availableDataTypesError)
-    // Handle error appropriately, e.g., return empty array or throw
   }
 
-  // Transform the data to match expected format
   const transformedDataTypes: DataType[] =
     availableDataTypes?.map((dt) => ({
       id: dt.id,
       name: dt.name,
-      fields: [], // Fields are not needed for reference selection, so an empty array is fine
+      fields: [],
       organization_id: dt.organization_id,
-      organization: dt.organizations ? { name: dt.organizations.name } : undefined, // Safely access organization name
+      organization: dt.organizations ? { name: dt.organizations.name } : undefined,
     })) || []
 
   return (
-    <DataTypeEditForm
-      dataType={dataType}
-      organizations={(organizations || []) as Organization[]} // Cast to Organization[]
-      availableDataTypes={transformedDataTypes}
-      lang={lang}
-      isAdmin={isAdmin}
-      isManager={isManager}
-    />
+    <div className="container mx-auto py-6">
+      <DataTypeEditForm
+        initialData={dataType}
+        organizations={(organizations || []) as Organization[]}
+        availableDataTypes={transformedDataTypes}
+        lang={lang}
+        onSave={updateDataType}
+      />
+    </div>
   )
 }

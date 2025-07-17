@@ -12,7 +12,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 
 interface DataTypeEditFormProps {
   lang: string
-  initialData: DataType
+  initialData?: DataType // Make optional to prevent crash on first render
   organizations: Organization[]
   availableDataTypes: DataType[]
   onSave: (data: Partial<DataType>) => Promise<{ error?: any }>
@@ -28,12 +28,14 @@ export function DataTypeEditForm({
   const router = useRouter()
   const { toast } = useToast()
   const [dict, setDict] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // For submission loading state
+  const [pageLoading, setPageLoading] = useState(true) // For initial data/dict loading
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
 
-  const [name, setName] = useState(initialData.name)
-  const [organizationId, setOrganizationId] = useState(initialData.organization_id)
+  // Safely initialize state from initialData
+  const [name, setName] = useState(initialData?.name || "")
+  const [organizationId, setOrganizationId] = useState(initialData?.organization_id || "")
   const [fields, setFields] = useState<Field[]>(
     initialData?.fields?.map((f) => ({
       ...f,
@@ -66,7 +68,7 @@ export function DataTypeEditForm({
 
   useEffect(() => {
     const loadDictionary = async () => {
-      setLoading(true)
+      setPageLoading(true)
       try {
         const dictResponse = await fetch(`/api/dictionaries/data-types/${lang}`)
         if (!dictResponse.ok) throw new Error("Failed to fetch data types dictionary")
@@ -80,11 +82,25 @@ export function DataTypeEditForm({
           variant: "destructive",
         })
       } finally {
-        setLoading(false)
+        setPageLoading(false)
       }
     }
     loadDictionary()
   }, [lang, toast])
+
+  // Effect to sync state if initialData changes after initial render
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name)
+      setOrganizationId(initialData.organization_id)
+      setFields(
+        initialData.fields?.map((f) => ({
+          ...f,
+          tempOptionsInput: f.type === "dropdown" && f.options ? f.options.join(", ") : "",
+        })) || [],
+      )
+    }
+  }, [initialData])
 
   const addField = useCallback(() => setFields((prev) => [...prev, { name: "", type: "string" }]), [])
 
@@ -98,25 +114,11 @@ export function DataTypeEditForm({
 
   const isFormDisabled = !isAdmin && !isManager
 
-  const validateForm = () => {
-    if (!organizationId) {
-      toast({
-        title: dict.dataTypeEditor.noOrganizationSelected,
-        variant: "destructive",
-      })
-      return false
-    }
-    // Add more validation logic here if needed
-    return true
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isFormDisabled) return
+    if (isFormDisabled || !initialData) return
 
-    if (!validateForm()) {
-      return
-    }
+    setLoading(true)
 
     const errors: string[] = []
     const fieldsToSave = fields.map((field) => {
@@ -149,6 +151,7 @@ export function DataTypeEditForm({
 
     if (errors.length) {
       toast({ title: dict.dataTypeEditor.invalidJson, description: errors.join("\n"), variant: "destructive" })
+      setLoading(false)
       return
     }
 
@@ -174,16 +177,17 @@ export function DataTypeEditForm({
       })
       router.push(`/${lang}/data-types`)
     }
+    setLoading(false)
   }
 
   const handleCancel = () => {
     router.push(`/${lang}/data-types`)
   }
 
-  if (loading || !dict) {
+  if (pageLoading || !dict || !initialData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
-        <p>{dict?.common?.loading || "Loading..."}</p>
+        <p>Loading...</p>
       </div>
     )
   }
@@ -192,11 +196,8 @@ export function DataTypeEditForm({
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>{dict.dataTypeEditor.editorTitle}</CardTitle>
-        <CardDescription>
-          {dict.dataTypeEditor.editorDescription.replace("{dataTypeName}", initialData.name)}
-        </CardDescription>
+        <CardDescription>{dict.dataTypeEditor.editorDescription}</CardDescription>
       </CardHeader>
-
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-6">
           <DataTypeEditor
@@ -215,17 +216,16 @@ export function DataTypeEditForm({
             isManager={isManager}
             disabled={isFormDisabled}
           />
+          <CardFooter className="justify-end gap-2 p-0 pt-6">
+            <Button variant="outline" onClick={handleCancel} type="button">
+              {dict.dataTypeEditor.cancelButton}
+            </Button>
+            <Button type="submit" disabled={isFormDisabled || loading}>
+              {loading ? "Saving..." : dict.dataTypeEditor.saveButton}
+            </Button>
+          </CardFooter>
         </form>
       </CardContent>
-
-      <CardFooter className="justify-end gap-2">
-        <Button variant="outline" onClick={handleCancel}>
-          {dict.dataTypeEditor.cancelButton}
-        </Button>
-        <Button onClick={handleSubmit} disabled={isFormDisabled}>
-          {dict.dataTypeEditor.saveButton}
-        </Button>
-      </CardFooter>
     </Card>
   )
 }

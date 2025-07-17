@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import type React from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { toast } from "@/components/ui/use-toast"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTypeEditor } from "@/components/data-type-editor"
-import { createClient } from "@/lib/supabase/client"
-import type { DataType, Field, Organization } from "@/types/data" // Import types from centralized file
+import { useToast } from "@/hooks/use-toast"
+import type { Organization, Field, DataType } from "@/types/data"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface DataTypeNewFormProps {
   organizations: Organization[]
@@ -19,190 +19,212 @@ interface DataTypeNewFormProps {
 
 export function DataTypeNewForm({ organizations, availableDataTypes, lang, isAdmin, isManager }: DataTypeNewFormProps) {
   const router = useRouter()
-  const supabase = createClient()
-  const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
+  const [dict, setDict] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
-  // State for form fields
+  // Form state
   const [name, setName] = useState("")
   const [organizationId, setOrganizationId] = useState("")
   const [fields, setFields] = useState<Field[]>([])
 
-  // State for validation errors
-  const [formErrors, setFormErrors] = useState<string[]>([])
+  // Dictionary loading
+  useEffect(() => {
+    const loadDictionary = async () => {
+      try {
+        const response = await fetch(`/api/dictionaries/data-types/${lang}`)
+        if (!response.ok) throw new Error("Failed to fetch dictionary")
+        const dictData = await response.json()
+        setDict(dictData)
+      } catch (error) {
+        console.error("Error loading dictionary:", error)
+        // Fallback dictionary
+        setDict({
+          dataTypeEditor: {
+            editorTitle: "Create New Data Type",
+            editorDescription: "Define a new data type for your organization.",
+            nameLabel: "Name",
+            fieldsLabel: "Fields",
+            organizationLabel: "Organization",
+            saveButton: "Create Data Type",
+            cancelButton: "Cancel",
+            invalidJson: "Invalid Data",
+            noOrganizationSelected: "Please select an organization.",
+            noOrganizationsFound: "No organizations found.",
+            addFieldButton: "Add Field",
+            removeFieldButton: "Remove Field",
+            fieldTypeOptions: {
+              string: "String",
+              number: "Number",
+              boolean: "Boolean",
+              date: "Date",
+              json: "JSON",
+              dropdown: "Dropdown",
+              file: "File",
+              reference: "Reference",
+            },
+            dropdownOptionsLabel: "Dropdown Options",
+            dropdownOptionsPlaceholder: "e.g., Option 1, Option 2, Option 3",
+            referenceDataTypeLabel: "Reference Data Type",
+            referenceDataTypePlaceholder: "Select a data type to reference",
+          },
+        })
+      }
+    }
 
-  const updateField = useCallback((index: number, updated: Partial<Field>) => {
-    setFields((prev) => prev.map((f, i) => (i === index ? { ...f, ...updated } : f)))
-  }, [])
+    loadDictionary()
+  }, [lang])
 
-  const addField = useCallback(() => {
-    setFields((prev) => [...prev, { name: "", type: "string" }])
-  }, [])
+  // Helper functions for fields state
+  const addField = useCallback(() => setFields((prev) => [...prev, { name: "", type: "string" }]), [])
 
   const removeField = useCallback((index: number) => {
     setFields((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  async function onSubmit() {
-    setIsSaving(true)
-    setFormErrors([]) // Clear previous errors
+  const updateField = useCallback((index: number, updated: Partial<Field>) => {
+    setFields((prev) => prev.map((f, i) => (i === index ? { ...f, ...updated } : f)))
+  }, [])
+
+  const isFormDisabled = !isAdmin && !isManager
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (isFormDisabled) return
+
+    /* basic validation */
+    if (!name.trim()) {
+      toast({
+        title: dict.dataTypeEditor.invalidJson,
+        description: "Data type name is required.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!organizationId) {
+      toast({
+        title: dict.dataTypeEditor.noOrganizationSelected,
+        variant: "destructive",
+      })
+      return
+    }
 
     const errors: string[] = []
-
-    if (!name.trim()) {
-      errors.push("Data type name is required.")
-    }
-    if (!organizationId) {
-      errors.push("Organization is required.")
-    }
-    if (fields.length === 0) {
-      errors.push("At least one field is required.")
-    }
-
     const fieldsToSave = fields.map((field) => {
-      const newField: Field = {
-        name: field.name,
-        type: field.type,
-      }
+      const newField: Partial<Field> = { name: field.name, type: field.type }
+
       if (!field.name.trim()) {
-        errors.push(`Field name cannot be empty for one of the fields.`)
+        errors.push("Every field needs a name.")
       }
 
       if (field.type === "dropdown") {
         const opts = (field.tempOptionsInput ?? "")
           .split(",")
-          .map((option) => option.trim())
-          .filter((option) => option.length > 0)
+          .map((o: string) => o.trim())
+          .filter(Boolean)
         if (opts.length === 0) {
-          errors.push(`Dropdown field "${field.name || "Unnamed"}" needs options.`)
+          errors.push(`Dropdown "${field.name || "Unnamed"}" needs options.`)
         }
         newField.options = opts
-      } else if (field.type === "reference") {
+      }
+
+      if (field.type === "reference") {
         if (!field.referenceDataTypeId) {
           errors.push(`Reference field "${field.name || "Unnamed"}" needs a data type selection.`)
         }
-        newField.referenceDataTypeId = field.referenceDataTypeId || undefined
+        newField.referenceDataTypeId = field.referenceDataTypeId
       }
-      return newField
+
+      return newField as Field
     })
 
-    if (errors.length > 0) {
-      setFormErrors(errors)
-      toast({
-        title: "Validation Error",
-        description: errors.join("\n"),
-        variant: "destructive",
-      })
-      setIsSaving(false)
+    if (errors.length) {
+      toast({ title: dict.dataTypeEditor.invalidJson, description: errors.join("\n"), variant: "destructive" })
       return
     }
 
+    setLoading(true)
     try {
-      const { error } = await supabase.from("data_types").insert({
-        name: name,
-        organization_id: organizationId,
-        fields: fieldsToSave,
+      const response = await fetch("/api/data-types", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name,
+          fields: fieldsToSave,
+          organization_id: organizationId,
+        }),
       })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create data type")
       }
 
       toast({
-        title: "Success!",
+        title: "Success",
         description: "Data type created successfully.",
       })
+
       router.push(`/${lang}/data-types`)
-      router.refresh()
     } catch (error: any) {
+      console.error("Error creating data type:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to create data type.",
         variant: "destructive",
       })
     } finally {
-      setIsSaving(false)
+      setLoading(false)
     }
   }
 
-  const isFormDisabled = !isAdmin && !isManager
+  const handleCancel = () => {
+    router.push(`/${lang}/data-types`)
+  }
+
+  if (!dict) {
+    return <div>Loading...</div>
+  }
 
   return (
-    <Card className="w-full max-w-4xl">
-      <CardHeader>
-        <CardTitle>Create New Data Type</CardTitle>
-        <CardDescription>Define a new data type with custom fields.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {formErrors.length > 0 && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-200 rounded">
-            <p className="font-semibold">Please correct the following errors:</p>
-            <ul className="list-disc list-inside">
-              {formErrors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            onSubmit()
-          }}
-          className="space-y-8"
-        >
-          <DataTypeEditor
-            name={name}
-            setName={setName}
-            organizationId={organizationId}
-            setOrganizationId={setOrganizationId}
-            fields={fields}
-            updateField={updateField}
-            addField={addField}
-            removeField={removeField}
-            organizations={organizations}
-            availableDataTypes={availableDataTypes}
-            disabled={isFormDisabled}
-            dict={{
-              editorTitle: "Create New Data Type",
-              editorDescription: "Define a new data type with custom fields.",
-              nameLabel: "Name",
-              fieldsLabel: "Fields",
-              organizationLabel: "Organization",
-              saveButton: "Create Data Type",
-              cancelButton: "Cancel",
-              invalidJson: "Invalid JSON", // This might need to be more specific now
-              noOrganizationSelected: "No organization selected.",
-              noOrganizationsFound: "No organizations found.",
-              addFieldButton: "Add Field",
-              removeFieldButton: "Remove Field",
-              fieldTypeOptions: {
-                string: "String",
-                number: "Number",
-                boolean: "Boolean",
-                date: "Date",
-                json: "JSON",
-                dropdown: "Dropdown",
-                file: "File",
-                reference: "Reference",
-              },
-              dropdownOptionsLabel: "Dropdown Options (comma-separated)",
-              dropdownOptionsPlaceholder: "Option 1, Option 2, Option 3",
-              referenceDataTypeLabel: "Reference Data Type",
-              referenceDataTypePlaceholder: "Select a data type to reference",
-            }}
-            isAdmin={isAdmin}
-            isManager={isManager}
-          />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving || isFormDisabled}>
-              {isSaving ? "Creating..." : "Create Data Type"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="container mx-auto py-6">
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>{dict.dataTypeEditor.editorTitle}</CardTitle>
+          <CardDescription>{dict.dataTypeEditor.editorDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSave} className="grid gap-6">
+            <DataTypeEditor
+              name={name}
+              setName={setName}
+              organizationId={organizationId}
+              setOrganizationId={setOrganizationId}
+              fields={fields}
+              updateField={updateField}
+              addField={addField}
+              removeField={removeField}
+              organizations={organizations}
+              availableDataTypes={availableDataTypes}
+              dict={dict.dataTypeEditor}
+              isAdmin={isAdmin}
+              isManager={isManager}
+              disabled={isFormDisabled}
+            />
+            <CardFooter className="justify-end gap-2 p-0 pt-6">
+              <Button variant="outline" onClick={handleCancel} type="button">
+                {dict.dataTypeEditor.cancelButton}
+              </Button>
+              <Button type="submit" disabled={isFormDisabled || loading}>
+                {loading ? "Creating..." : dict.dataTypeEditor.saveButton}
+              </Button>
+            </CardFooter>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
