@@ -3,8 +3,9 @@ import { DataTypesClientPage } from "./data-types-client"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { DataType } from "@/types/data"
 
-export default async function DataTypesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
-  const supabase = createClient()
+export default async function DataTypesPage({ params }: { params: { lang: "en" | "es" } }) {
+  const { lang } = await params
+  const supabase = await createClient()
   const dict = await getDictionary(lang)
 
   const {
@@ -45,7 +46,7 @@ export default async function DataTypesPage({ params: { lang } }: { params: { la
   const initialDataTypes =
     data?.map((dt) => ({
       ...dt,
-      organization: dt.organization as { name: string } | undefined,
+      organization: dt.organization as unknown as { name: string } | undefined,
     })) || []
 
   return (
