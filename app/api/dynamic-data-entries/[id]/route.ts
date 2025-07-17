@@ -7,8 +7,9 @@ import { cookies } from "next/headers"
  * Fetch a single dynamic_data_entries row.
  */
 export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const { id } = await params
   const supabase = await createServerClient();
-  const { data, error } = await supabase.from("dynamic_data_entries").select("*").eq("id", params.id).maybeSingle()
+  const { data, error } = await supabase.from("dynamic_data_entries").select("*").eq("id", id).maybeSingle()
 
   if (error) {
     console.error("GET dynamic_data_entries:", error)
@@ -27,7 +28,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
  * Body: { data: Record<string, unknown> }
  */
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   const supabase = await createServerClient();
 
   try {
@@ -41,13 +42,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     console.log("[SERVER] Updating entry ID:", id)
 
     // Ensure 'data' field is present and is an object
-    if (!requestBody.data || typeof requestBody.data !== "object") {
+    if (!requestBody || typeof requestBody !== "object") {
       return NextResponse.json({ error: "Missing or invalid 'data' field in request body" }, { status: 400 })
     }
 
     // Add updated_at timestamp
     const updatePayload = {
-      data: requestBody.data,
+      data: requestBody,
       updated_at: new Date().toISOString(),
     }
     console.log("[SERVER] Update data:", updatePayload)
@@ -93,7 +94,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
  * DELETE /api/dynamic-data-entries/[id]
  */
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   const supabase = await createServerClient();
 
   try {
