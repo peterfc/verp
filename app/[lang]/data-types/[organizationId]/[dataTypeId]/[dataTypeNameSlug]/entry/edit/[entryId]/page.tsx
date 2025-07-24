@@ -11,12 +11,12 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import type { DataType, DynamicDataEntry } from "@/types/data"
 
-export default async function EditDynamicDataEntryPage({
+export default function EditDynamicDataEntryPage({
   params,
 }: {
   params: Promise<{ lang: "en" | "es"; organizationId: string; dataTypeId: string; dataTypeNameSlug: string; entryId: string }>
 }) {
-  const { lang, organizationId, dataTypeId, dataTypeNameSlug, entryId } = await params
+  const { lang, organizationId, dataTypeId, dataTypeNameSlug, entryId } = React.use(params)
   const router = useRouter()
   const { toast } = useToast()
   

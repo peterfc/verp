@@ -15,12 +15,14 @@ interface Profile {
 }
 
 export default function EditProfilePage({
-  params: { lang, id },
+  params,
 }: {
-  params: { lang: "en" | "es"; id: string }
+  params: Promise<{ lang: "en" | "es"; id: string }>
 }) {
   const router = useRouter()
   const { toast } = useToast()
+  const [lang, setLang] = useState<"en" | "es">("en")
+  const [id, setId] = useState<string>("")
   const [dict, setDict] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | undefined>(undefined)
   const [loading, setLoading] = useState(true)
@@ -28,6 +30,16 @@ export default function EditProfilePage({
   const [isManager, setIsManager] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const supabase = createBrowserClient()
+
+  // Handle params Promise in useEffect
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setLang(resolvedParams.lang)
+      setId(resolvedParams.id)
+    }
+    resolveParams()
+  }, [params])
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -53,6 +65,8 @@ export default function EditProfilePage({
 
   useEffect(() => {
     const loadData = async () => {
+      if (!lang || !id) return // Don't load until params are resolved
+      
       setLoading(true)
       try {
         const dictResponse = await fetch(`/api/dictionaries/profiles/${lang}`)

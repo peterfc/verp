@@ -26,7 +26,8 @@ interface Profile {
   type: string
 }
 
-export default function ProfilesPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
+export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" | "es" }> }) {
+  const [lang, setLang] = useState<"en" | "es">("en")
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProfile, setEditingProfile] = useState<Profile | undefined>(undefined)
@@ -40,6 +41,15 @@ export default function ProfilesPage({ params: { lang } }: { params: { lang: "en
   const [isManager, setIsManager] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const supabase = createBrowserClient()
+
+  // Handle params Promise in useEffect
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setLang(resolvedParams.lang)
+    }
+    resolveParams()
+  }, [params])
 
   useEffect(() => {
     const fetchUserRole = async () => {

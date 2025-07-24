@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import "../globals.css"
 import { cookies } from "next/headers"
 import { Separator } from "@/components/ui/separator"
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger"
@@ -22,7 +21,7 @@ export default async function LocaleLayout({
   params
 }: {
   children: React.ReactNode
-  params: { lang: "en" | "es" }
+  params: Promise<{ lang: "en" | "es" }>
 }) {
   const { lang } = await params;
   const cookieStore = await cookies()
@@ -60,7 +59,7 @@ export default async function LocaleLayout({
   )
 }
 
-export async function generateMetadata({ params }: { params: { lang: "en" | "es" } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ lang: "en" | "es" }> }): Promise<Metadata> {
   const { lang } = await params // Access lang explicitly after receiving the full params object
   const dict = await getDictionary(lang)
   return {

@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +21,8 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import type { Organization, Profile } from "@/types/data" // Import Organization and Profile from types/data
 
-export default function OrganizationsPage({ params: { lang } }: { params: { lang: "en" | "es" } }) {
+export default function OrganizationsPage({ params }: { params: Promise<{ lang: "en" | "es" }> }) {
+  const { lang } = React.use(params)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([]) // Added state for profiles
   const [isFormOpen, setIsFormOpen] = useState(false)
