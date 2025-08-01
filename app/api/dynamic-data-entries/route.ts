@@ -13,6 +13,48 @@ export async function GET(request: Request) {
   const supabase = await createServerClient();
 
   try {
+    // Get current user and check their role
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check current user's profile type
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("type")
+      .eq("id", user.id)
+      .single()
+
+    // If user is not an admin, verify the data type belongs to their current organization
+    if (!currentProfile || currentProfile.type !== 'Administrator') {
+      const cookieStore = await cookies()
+      const currentOrganizationId = cookieStore.get("current-organization")?.value
+      
+      if (!currentOrganizationId) {
+        return NextResponse.json({ error: "No organization selected" }, { status: 403 })
+      }
+      
+      // Verify the data type belongs to the user's organization
+      const { data: dataType, error: dataTypeError } = await supabase
+        .from("data_types")
+        .select("organization_id")
+        .eq("id", dataTypeId)
+        .single()
+      
+      if (dataTypeError) {
+        console.error("Error fetching data type:", dataTypeError)
+        return NextResponse.json({ error: "Data type not found" }, { status: 404 })
+      }
+      
+      if (dataType.organization_id !== currentOrganizationId) {
+        return NextResponse.json({ error: "Access denied to this data type" }, { status: 403 })
+      }
+    }
+
     const { data, error } = await supabase
       .from("dynamic_data_entries")
       .select("*")

@@ -24,6 +24,8 @@ interface Profile {
   name: string
   email: string
   type: string
+  hasPassword?: boolean
+  needs_password_setup?: boolean
 }
 
 export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" | "es" }> }) {
@@ -40,6 +42,7 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [resendingInvitation, setResendingInvitation] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   // Handle params Promise in useEffect
@@ -119,6 +122,7 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
             editDescription: "Make changes to the profile here.",
             addDescription: "Add a new profile to your list.",
             typeLabel: "Type",
+            organizationsLabel: "Organizations",
             typeOptions: {
               administrator: "Administrator",
               manager: "Manager",
@@ -160,6 +164,9 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
       }
       const data: Profile[] = await response.json()
       setProfiles(data)
+      
+      // For admins/managers, we already have needs_password_setup from the API response
+      // so we don't need to make separate calls to check password status
     } catch (err: any) {
       setError(err.message || dict?.profilesPage.failedToFetchProfiles || "Failed to fetch profiles.")
       toast({
@@ -179,7 +186,7 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
     }
   }, [fetchProfiles, dict])
 
-  const handleSaveProfile = async (profile: { id?: string; name: string; email: string; type: string }) => {
+  const handleSaveProfile = async (profile: { id?: string; name: string; email: string; type: string; organization_ids?: string[] }) => {
     setError(null)
     try {
       let response: Response
@@ -195,7 +202,12 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
         response = await fetch("/api/profiles", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: profile.name, email: profile.email, type: profile.type }),
+          body: JSON.stringify({ 
+            name: profile.name, 
+            email: profile.email, 
+            type: profile.type,
+            organization_ids: profile.organization_ids || []
+          }),
         })
       }
 
@@ -247,6 +259,38 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
         variant: "destructive",
       })
       console.error(err)
+    }
+  }
+
+  const handleResendInvitation = async (profile: Profile) => {
+    setResendingInvitation(profile.id)
+    try {
+      const response = await fetch(`/api/profiles/${profile.id}/resend-invitation`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to resend invitation.")
+      }
+
+      const data = await response.json()
+      toast({
+        title: dict?.common.success || "Success",
+        description: data.message || `Invitation resent successfully to ${profile.email}`,
+      })
+      
+      // Refresh the profiles list to get updated data
+      fetchProfiles()
+    } catch (err: any) {
+      toast({
+        title: dict?.common.error || "Error",
+        description: err.message || "Failed to resend invitation.",
+        variant: "destructive",
+      })
+      console.error(err)
+    } finally {
+      setResendingInvitation(null)
     }
   }
 
@@ -307,7 +351,14 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
                     <TableRow key={profile.id}>
                       {[
                         <TableCell key="name" className="font-medium">
-                          {profile.name}
+                          <div className="flex items-center gap-2">
+                            {profile.name}
+                            {(isAdmin || isManager) && profile.needs_password_setup && (
+                              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+                                Password Setup Required
+                              </span>
+                            )}
+                          </div>
                         </TableCell>,
                         <TableCell key="email">{profile.email}</TableCell>,
                         <TableCell key="type">{profile.type}</TableCell>,
@@ -325,6 +376,17 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
                                 <DropdownMenuItem onClick={() => openEditForm(profile)}>
                                   {dict.common.edit}
                                 </DropdownMenuItem>
+                                {profile.needs_password_setup && (
+                                  (isAdmin) ||
+                                  (isManager && profile.type !== 'Administrator' && profile.type !== 'Manager')
+                                ) && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleResendInvitation(profile)}
+                                    disabled={resendingInvitation === profile.id}
+                                  >
+                                    {resendingInvitation === profile.id ? "Sending..." : "Resend Invitation"}
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 {(isAdmin ||
                                   (isManager && currentUser && profile.id !== currentUser.id) ||
@@ -360,6 +422,7 @@ export default function ProfilesPage({ params }: { params: Promise<{ lang: "en" 
           nameLabel: dict.common.name,
           emailLabel: dict.common.email,
           typeLabel: dict.profileForm.typeLabel,
+          organizationsLabel: dict.profileForm.organizationsLabel,
           typeOptions: dict.profileForm.typeOptions,
           saveChangesButton: dict.common.saveChanges,
           addProfileButton: dict.common.add.replace("{itemType}", dict.profilesPage.title.toLowerCase()),

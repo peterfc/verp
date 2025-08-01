@@ -186,5 +186,11 @@
     "invalidJson": "Formato JSON inválido.",
     "invalidDate": "Formato de fecha inválido.",
     "fieldLabel": "Campo"
+  },
+  "organizationSelector": {
+    "title": "Seleccionar Organización",
+    "description": "Por favor selecciona con qué organización te gustaría trabajar.",
+    "selectButton": "Continuar",
+    "loading": "Configurando organización..."
   }
 }

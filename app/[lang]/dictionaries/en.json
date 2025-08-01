@@ -186,5 +186,11 @@
     "invalidJson": "Invalid JSON format.",
     "invalidDate": "Invalid date format.",
     "fieldLabel": "Field"
+  },
+  "organizationSelector": {
+    "title": "Select Organization",
+    "description": "Please select which organization you would like to work with.",
+    "selectButton": "Continue",
+    "loading": "Setting organization..."
   }
 }

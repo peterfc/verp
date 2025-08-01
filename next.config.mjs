@@ -9,9 +9,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    optimizeCss: true,
-  },
+  // Temporarily disabled due to critters module issue
+  // experimental: {
+  //   optimizeCss: true,
+  // },
 }
 
 export default nextConfig

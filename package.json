@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "latest",
-    "@hookform/resolvers": "latest",
+    "@hookform/resolvers": "3.3.2",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",

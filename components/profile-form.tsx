@@ -14,13 +14,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MultiSelectOrganizations } from "./multi-select-organizations"
+import { useToast } from "@/hooks/use-toast"
+
+interface Organization {
+  id: string
+  name: string
+}
 
 interface ProfileFormProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  profile?: { id: string; name: string; email: string; type: string } // Add type to profile
-  onSave: (profile: { id?: string; name: string; email: string; type: string }) => void // Add type to onSave
+  profile?: { id: string; name: string; email: string; type: string }
+  onSave: (profile: { id?: string; name: string; email: string; type: string; organization_ids?: string[] }) => void
   dict: {
     editTitle: string
     addTitle: string
@@ -28,46 +35,80 @@ interface ProfileFormProps {
     addDescription: string
     nameLabel: string
     emailLabel: string
-    typeLabel: string // New: type label
+    typeLabel: string
+    organizationsLabel: string
     typeOptions: {
       administrator: string
       manager: string
       user: string
-    } // New: type options
+    }
     saveChangesButton: string
     addProfileButton: string
   }
-  isAdmin: boolean // New prop: isAdmin
-  isManager: boolean // New prop: isManager
+  isAdmin: boolean
+  isManager: boolean
 }
 
 export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdmin, isManager }: ProfileFormProps) {
   const [name, setName] = useState(profile?.name || "")
   const [email, setEmail] = useState(profile?.email || "")
-  const [type, setType] = useState(profile?.type || "User") // New: state for type, default to 'User'
+  const [type, setType] = useState(profile?.type || "User")
+  const [allOrganizations, setAllOrganizations] = useState<Organization[]>([])
+  const [selectedOrganizationIds, setSelectedOrganizationIds] = useState<string[]>([])
+  const { toast } = useToast()
+
+  // Fetch all organizations when the dialog opens (only for new profiles)
+  useEffect(() => {
+    if (isOpen && !profile) {
+      const fetchAllOrganizations = async () => {
+        try {
+          const response = await fetch("/api/organizations")
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          const data: Organization[] = await response.json()
+          setAllOrganizations(data)
+        } catch (err: any) {
+          toast({
+            title: "Error fetching organizations",
+            description: err.message || "Failed to load organizations for selection.",
+            variant: "destructive",
+          })
+          console.error(err)
+        }
+      }
+      fetchAllOrganizations()
+    }
+  }, [isOpen, profile, toast])
 
   useEffect(() => {
     if (profile) {
       setName(profile.name)
       setEmail(profile.email)
-      setType(profile.type) // Set type from profile
+      setType(profile.type)
+      setSelectedOrganizationIds([]) // For editing, we don't change organizations
     } else {
       setName("")
       setEmail("")
-      setType("User") // Reset type to default for new profile
+      setType("User")
+      setSelectedOrganizationIds([])
     }
   }, [profile, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({ id: profile?.id, name, email, type }) // Pass type to onSave
+    const profileData = { 
+      id: profile?.id, 
+      name, 
+      email, 
+      type,
+      ...((!profile && selectedOrganizationIds.length > 0) && { organization_ids: selectedOrganizationIds })
+    }
+    onSave(profileData)
     onOpenChange(false)
   }
 
   // Determine if the type dropdown should be disabled
-  // It's enabled if:
-  // 1. Current user is an Admin
-  // 2. Current user is a Manager AND the profile being edited is NOT an Administrator
   const isTypeSelectDisabled = !isAdmin && (!isManager || (profile && profile.type === "Administrator"))
 
   return (
@@ -97,7 +138,6 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdm
               required
             />
           </div>
-          {/* Profile Type Select */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="type" className="text-right">
               {dict.typeLabel}
@@ -113,6 +153,21 @@ export function ProfileForm({ isOpen, onOpenChange, profile, onSave, dict, isAdm
               </SelectContent>
             </Select>
           </div>
+          {/* Organization selection - only show for new profiles */}
+          {!profile && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="organizations" className="text-right">
+                {dict.organizationsLabel}
+              </Label>
+              <div className="col-span-3">
+                <MultiSelectOrganizations
+                  organizations={allOrganizations}
+                  selectedOrganizationIds={selectedOrganizationIds}
+                  onSelectionChange={setSelectedOrganizationIds}
+                />
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button type="submit">{profile ? dict.saveChangesButton : dict.addProfileButton}</Button>
           </DialogFooter>

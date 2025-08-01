@@ -11,6 +11,7 @@ export interface Database {
           type: string
           created_at: string
           updated_at: string
+          needs_password_setup: boolean | null
         }
         Insert: {
           id: string
@@ -19,6 +20,7 @@ export interface Database {
           type?: string
           created_at?: string
           updated_at?: string
+          needs_password_setup?: boolean | null
         }
         Update: {
           id?: string
@@ -27,6 +29,7 @@ export interface Database {
           type?: string
           created_at?: string
           updated_at?: string
+          needs_password_setup?: boolean | null
         }
       }
       organizations: {

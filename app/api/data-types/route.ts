@@ -18,16 +18,53 @@ function explain(err: any): string {
 export async function GET() {
   const supabase = await createServerClient();
 
-  /* 1️⃣  fetch data_types first */
-  const { data: dataTypes, error: dtError } = await supabase
+  // Get current user and check their role
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Check current user's profile type
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("type")
+    .eq("id", user.id)
+    .single()
+
+  // Get current organization for non-admin users
+  const cookieStore = await cookies()
+  const currentOrganizationId = cookieStore.get("current-organization")?.value
+  
+  const isAdmin = currentProfile?.type === 'Administrator'
+
+  if (!isAdmin && !currentOrganizationId) {
+    console.log("Non-admin user has no current organization set")
+    return NextResponse.json([])
+  }
+
+  let dataTypesQuery = supabase
     .from("data_types")
-    .select("*") // no join
+    .select("*")
     .order("created_at", { ascending: false })
+
+  // If user is not an admin, filter by their current organization
+  if (!isAdmin && currentOrganizationId) {
+    console.log("Non-admin user, filtering data types for organization:", currentOrganizationId)
+    dataTypesQuery = dataTypesQuery.eq("organization_id", currentOrganizationId)
+  } else if (isAdmin) {
+    console.log("Admin user, fetching all data types")
+  }
+
+  /* 1️⃣  fetch data_types (filtered by organization for non-admins) */
+  const { data: dataTypes, error: dtError } = await dataTypesQuery
 
   if (dtError) {
     console.error("GET /api/data-types →", dtError)
 
-    /* If the migrations haven’t run yet the table won’t exist (code 42P01). 
+    /* If the migrations haven't run yet the table won't exist (code 42P01). 
        Instead of crashing the UI, return an empty list so the page can still render. */
     if (dtError.code === "42P01") {
       return NextResponse.json([], { status: 200 })

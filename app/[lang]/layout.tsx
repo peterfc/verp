@@ -1,14 +1,17 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
+import { redirect } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { OrganizationDropdown } from "@/components/organization-dropdown"
 import { getDictionary } from "./dictionaries"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { createServerClient } from "@/lib/supabase/server"
+import { getCurrentOrganization } from "@/lib/organization-utils"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,6 +27,18 @@ export default async function LocaleLayout({
   params: Promise<{ lang: "en" | "es" }>
 }) {
   const { lang } = await params;
+  const headersList = await headers()
+  const pathname = headersList.get("x-pathname") || ""
+  
+  // Check if we're on special pages that need simple layout
+  const isSetupPasswordPage = pathname.includes("/setup-password")
+  const isSelectOrganizationPage = pathname.includes("/select-organization")
+  
+  // For setup-password and select-organization pages, render a simple layout without sidebar
+  if (isSetupPasswordPage || isSelectOrganizationPage) {
+    return <>{children}</>
+  }
+
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
   const dict = await getDictionary(lang)
@@ -33,6 +48,14 @@ export default async function LocaleLayout({
     data: { user },
   } = await supabase.auth.getUser()
   const userName = user?.user_metadata?.name || user?.email || dict.layout.guest
+
+  // Get organization information
+  const { currentOrganization, userOrganizations, needsOrganizationSelection } = await getCurrentOrganization()
+
+  // If user needs to select an organization, redirect them
+  if (user && needsOrganizationSelection) {
+    redirect(`/${lang}/select-organization`)
+  }
 
   return (
     <>
@@ -48,6 +71,13 @@ export default async function LocaleLayout({
               <h1 className="text-lg font-semibold">{dict.layout.dashboardTitle}</h1>
               <div className="ml-auto flex items-center gap-4">
                 <span className="text-sm font-medium">{userName}</span>
+                {user && currentOrganization && (
+                  <OrganizationDropdown
+                    currentOrganization={currentOrganization}
+                    userOrganizations={userOrganizations}
+                    lang={lang}
+                  />
+                )}
                 <LanguageSwitcher />
               </div>
             </header>

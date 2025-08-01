@@ -70,7 +70,17 @@ export default function LoginPage() {
         duration: 5000,
       })
     }
-  }, [pathname, supabase, toast])
+
+    // Check for password setup success
+    const passwordSetupSuccess = searchParams.get("passwordSetup")
+    if (passwordSetupSuccess === "success" && dict) {
+      toast({
+        title: "Password Set Successfully",
+        description: "Your password has been set. You can now log in with your new credentials.",
+        duration: 6000,
+      })
+    }
+  }, [pathname, supabase, toast, searchParams, dict])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
