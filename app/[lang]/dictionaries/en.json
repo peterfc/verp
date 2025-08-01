@@ -30,7 +30,9 @@
     "profiles": "Profiles",
     "myProfile": "My Profile",
     "organizations": "Organizations",
+    "organization": "Organization",
     "dataTypes": "Data Types",
+    "data": "Data",
     "settings": "Settings",
     "logout": "Logout",
     "logoutFailed": "Logout Failed",
@@ -80,6 +82,9 @@
     "contact": "Contact",
     "industry": "Industry",
     "associatedProfiles": "Associated Profiles"
+  },
+  "organizationPage": {
+    "title": "Organization"
   },
   "organizationForm": {
     "editTitle": "Edit Organization",

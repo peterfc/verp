@@ -2,11 +2,11 @@
 import Link from "next/link"
 import { SidebarMenuSubItem } from "@/components/ui/sidebar"
 
-import { Users, BriefcaseBusiness, Home, LogOut, ChevronDown, FileText } from "lucide-react" // Import FileText
+import { Users, BriefcaseBusiness, Home, LogOut, ChevronDown, FileText, Database, UserCircle, Building } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
-import { useState, useEffect, useCallback } from "react" // Import useCallback
+import { useState, useEffect, useCallback } from "react"
 import type { User } from "@supabase/supabase-js"
 
 import {
@@ -23,7 +23,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   useSidebar,
-  SidebarMenuSkeleton, // Import SidebarMenuSkeleton
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
@@ -105,19 +105,15 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
       setDataTypes(data)
     } catch (err) {
       console.error("Error fetching data types for sidebar:", err)
-      // Optionally toast an error, but might be too noisy for sidebar
     } finally {
       setLoadingDataTypes(false)
     }
   }, [supabase, currentUser])
 
   useEffect(() => {
-    // Fetch data types for all authenticated users, as they might need to see them
-    // nested under organizations.
     if (currentUser) {
       fetchDataTypes()
     } else {
-      // If not logged in, clear data types
       setDataTypes([])
       setLoadingDataTypes(false)
     }
@@ -168,6 +164,7 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
             <SidebarGroupLabel>{sidebarDict.navigation}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Dashboard */}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={pathname === `/${currentLocale}/`}
@@ -179,6 +176,8 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                {/* My Profile / Profiles */}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={
@@ -195,29 +194,40 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
                     }
                   >
                     <div className="flex items-center gap-2">
-                      <Users />
+                      {isAdmin || isManager ? <Users /> : <UserCircle />}
                       <span>{isAdmin || isManager ? sidebarDict.profiles : sidebarDict.myProfile}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                {/* Organizations and nested Data Types */}
+                {/* Organization (read-only for users, settings for admins/managers) */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={pathname === `/${currentLocale}/organizations`}
+                    onClick={() => handleNavLinkClick(
+                      isAdmin || isManager 
+                        ? `/${currentLocale}/organizations`
+                        : `/${currentLocale}/organization`
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Building />
+                      <span>{isAdmin || isManager ? sidebarDict.organizations : sidebarDict.organization}</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* Data section with nested data types */}
                 <Collapsible
-                  defaultOpen={
-                    pathname.startsWith(`/${currentLocale}/organizations`) ||
-                    pathname.startsWith(`/${currentLocale}/data-types`)
-                  }
+                  defaultOpen={pathname.startsWith(`/${currentLocale}/data-types`)}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        isActive={pathname === `/${currentLocale}/organizations`}
-                        // No direct onClick here, as the CollapsibleTrigger handles it
-                      >
+                      <SidebarMenuButton>
                         <div className="flex items-center gap-2">
-                          <BriefcaseBusiness />
-                          <span>{sidebarDict.organizations}</span>
+                          <Database />
+                          <span>{sidebarDict.data || 'Data'}</span>
                           <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
                         </div>
                       </SidebarMenuButton>
@@ -225,20 +235,8 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
                   </SidebarMenuItem>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          asChild
-                          isActive={pathname === `/${currentLocale}/organizations`}
-                          onClick={() => handleNavLinkClick(`/${currentLocale}/organizations`)}
-                        >
-                          <Link href={`/${currentLocale}/organizations`}>
-                            <span>{sidebarDict.settings}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-
-                      {/* Data Types link for Admins/Managers, or individual data type links for regular users */}
-                      {isAdmin || isManager ? (
+                      {/* Data Types management link for admins/managers */}
+                      {(isAdmin || isManager) && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton
                             asChild
@@ -246,47 +244,46 @@ export function AppSidebar({ sidebarDict }: { sidebarDict: any }) {
                             onClick={() => handleNavLinkClick(`/${currentLocale}/data-types`)}
                           >
                             <Link href={`/${currentLocale}/data-types`}>
+                              <Database className="h-4 w-4" />
                               <span>{sidebarDict.dataTypes}</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
+                      )}
+                      
+                      {/* Individual data type links */}
+                      {loadingDataTypes ? (
+                        <SidebarMenuSkeleton showIcon />
+                      ) : dataTypes.length === 0 ? (
+                        <SidebarMenuSubItem>
+                          <span className="px-2 py-1 text-xs text-muted-foreground">
+                            {sidebarDict.noDataTypesFound || 'No data types found'}
+                          </span>
+                        </SidebarMenuSubItem>
                       ) : (
-                        // For regular users, list individual data types directly under Organizations
-                        <>
-                          {loadingDataTypes ? (
-                            <SidebarMenuSkeleton showIcon />
-                          ) : dataTypes.length === 0 ? (
-                            <SidebarMenuSubItem>
-                              <span className="px-2 py-1 text-xs text-muted-foreground">
-                                {sidebarDict.noDataTypesFound}
-                              </span>
-                            </SidebarMenuSubItem>
-                          ) : (
-                            dataTypes.map((dataType) => (
-                              <SidebarMenuSubItem key={dataType.id}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={
-                                    pathname ===
-                                    `/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`
-                                  }
-                                  onClick={() =>
-                                    handleNavLinkClick(
-                                      `/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`,
-                                    )
-                                  }
-                                >
-                                  <Link
-                                    href={`/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`}
-                                  >
-                                    <FileText className="h-4 w-4" /> {/* Add icon for individual data types */}
-                                    <span>{dataType.name}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))
-                          )}
-                        </>
+                        dataTypes.map((dataType) => (
+                          <SidebarMenuSubItem key={dataType.id}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={
+                                pathname ===
+                                `/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`
+                              }
+                              onClick={() =>
+                                handleNavLinkClick(
+                                  `/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`,
+                                )
+                              }
+                            >
+                              <Link
+                                href={`/${currentLocale}/data-types/${dataType.organization_id}/${dataType.id}/${generateSlug(dataType.name)}`}
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span>{dataType.name}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))
                       )}
                     </SidebarMenuSub>
                   </CollapsibleContent>

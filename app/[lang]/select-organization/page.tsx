@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createServerClient } from "@/lib/supabase/server"
 import { getDictionary } from "../dictionaries"
 import { OrganizationSelector } from "@/components/organization-selector"
+import { AutoRedirect } from "./auto-redirect"
 import type { Organization } from "@/types/data"
 
 export default async function SelectOrganizationPage({
@@ -64,19 +65,7 @@ export default async function SelectOrganizationPage({
   // If user has only one organization, set it automatically and redirect
   if (organizations.length === 1) {
     const organizationId = organizations[0].id
-    
-    // We need to set the cookie on the server side for this automatic case
-    const { cookies } = await import("next/headers")
-    const cookieStore = await cookies()
-    cookieStore.set("current-organization", organizationId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: "/",
-    })
-    
-    redirect(`/${lang}`)
+    return <AutoRedirect organizationId={organizationId} lang={lang} />
   }
 
   return (

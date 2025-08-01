@@ -25,7 +25,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const loadDict = async () => {
-      const currentLocale = (pathname.split("/")[1] || "en") as "en" | "es"
+      const pathParts = pathname.split("/")
+      // Handle direct /login access (without language prefix)
+      const currentLocale = (pathParts[1] && ["en", "es"].includes(pathParts[1]) ? pathParts[1] : "en") as "en" | "es"
       try {
         const response = await fetch(`/api/dictionaries/login/${currentLocale}`)
         if (!response.ok) {
@@ -57,7 +59,9 @@ export default function LoginPage() {
       }
     }
     loadDict()
+  }, [pathname])
 
+  useEffect(() => {
     // Check if supabase client is ready
     if (supabase) {
       setIsSupabaseReady(true)
@@ -70,7 +74,9 @@ export default function LoginPage() {
         duration: 5000,
       })
     }
+  }, [supabase, toast])
 
+  useEffect(() => {
     // Check for password setup success
     const passwordSetupSuccess = searchParams.get("passwordSetup")
     if (passwordSetupSuccess === "success" && dict) {
@@ -80,7 +86,7 @@ export default function LoginPage() {
         duration: 6000,
       })
     }
-  }, [pathname, supabase, toast, searchParams, dict])
+  }, [searchParams, dict, toast])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
